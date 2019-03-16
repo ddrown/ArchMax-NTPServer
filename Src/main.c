@@ -100,13 +100,18 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t next_blink = HAL_GetTick();
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    while(uart_rx_ready()) {
-      cmdline_addchr(uart_rx_data());
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+    next_blink += 500;
+    while(HAL_GetTick() < next_blink) {
+      while(uart_rx_ready()) {
+	cmdline_addchr(uart_rx_data());
+      }
     }
   }
   /* USER CODE END 3 */

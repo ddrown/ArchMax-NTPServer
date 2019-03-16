@@ -51,6 +51,12 @@
 #define LWIP_DHCP 1
 /*----- Default Value for LWIP_DNS: 0 ---*/
 #define LWIP_DNS 1
+/*----- Default Value for MEMP_NUM_UDP_PCB: 4 ---*/
+#define MEMP_NUM_UDP_PCB 10
+/*----- Value in opt.h for LWIP_TCP: 1 -----*/
+#define LWIP_TCP 0
+/*----- Default Value for MEMP_NUM_TCP_PCB: 5 ---*/
+#define MEMP_NUM_TCP_PCB 0
 /*----- Value in opt.h for NO_SYS: 0 -----*/
 #define NO_SYS 1
 /*----- Value in opt.h for SYS_LIGHTWEIGHT_PROT: 1 -----*/

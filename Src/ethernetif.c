@@ -125,7 +125,7 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     /* Peripheral interrupt init */
-    HAL_NVIC_SetPriority(ETH_IRQn, 14, 0);
+    HAL_NVIC_SetPriority(ETH_IRQn, 7, 0);
     HAL_NVIC_EnableIRQ(ETH_IRQn);
   /* USER CODE BEGIN ETH_MspInit 1 */
 
@@ -201,7 +201,7 @@ static void low_level_init(struct netif *netif)
   MACAddr[4] = 0x00;
   MACAddr[5] = 0x00;
   heth.Init.MACAddr = &MACAddr[0];
-  heth.Init.RxMode = ETH_RXPOLLING_MODE;
+  heth.Init.RxMode = ETH_RXINTERRUPT_MODE;
   heth.Init.ChecksumMode = ETH_CHECKSUM_BY_HARDWARE;
   heth.Init.MediaInterface = ETH_MEDIA_INTERFACE_RMII;
 
