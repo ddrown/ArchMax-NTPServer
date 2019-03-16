@@ -1,8 +1,6 @@
-#include "stm32f0xx_hal.h"
+#include "main.h"
 #include "commandline.h"
 #include "uart.h"
-#include "adc.h"
-#include "timer.h"
 
 #include <string.h>
 #include <stdlib.h>

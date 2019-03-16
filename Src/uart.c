@@ -48,9 +48,14 @@ int8_t uart_rx_ready() {
   if(overrun) { // software buffer overrun
     overrun = 0;
   }
+
+#ifdef UART_CLEAR_OREF
+  // clear overflow flag
   if(__HAL_UART_GET_FLAG(&UART_NAME, UART_CLEAR_OREF) != RESET) { // hardware buffer overrun
     __HAL_UART_CLEAR_FLAG(&UART_NAME, UART_CLEAR_OREF);
   }
+#endif
+
   HAL_UART_Receive_IT(&UART_NAME, &uartData, 1);
   return start != end;
 }

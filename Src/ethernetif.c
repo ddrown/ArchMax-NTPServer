@@ -124,6 +124,9 @@ void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+    /* Peripheral interrupt init */
+    HAL_NVIC_SetPriority(ETH_IRQn, 14, 0);
+    HAL_NVIC_EnableIRQ(ETH_IRQn);
   /* USER CODE BEGIN ETH_MspInit 1 */
 
   /* USER CODE END ETH_MspInit 1 */
@@ -157,6 +160,9 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 
     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_11|GPIO_PIN_12|GPIO_PIN_13);
 
+    /* Peripheral interrupt Deinit*/
+    HAL_NVIC_DisableIRQ(ETH_IRQn);
+
   /* USER CODE BEGIN ETH_MspDeInit 1 */
 
   /* USER CODE END ETH_MspDeInit 1 */
@@ -187,7 +193,7 @@ static void low_level_init(struct netif *netif)
    uint8_t MACAddr[6] ;
   heth.Instance = ETH;
   heth.Init.AutoNegotiation = ETH_AUTONEGOTIATION_ENABLE;
-  heth.Init.PhyAddress = LAN8742A_PHY_ADDRESS;
+  heth.Init.PhyAddress = DP83848_PHY_ADDRESS;
   MACAddr[0] = 0x00;
   MACAddr[1] = 0x80;
   MACAddr[2] = 0xE1;
@@ -249,16 +255,22 @@ static void low_level_init(struct netif *netif)
     
 /* USER CODE END PHY_PRE_CONFIG */
   
-
+  /**** Configure PHY to generate an interrupt when Eth Link state changes ****/
   /* Read Register Configuration */
-  HAL_ETH_ReadPHYRegister(&heth, PHY_ISFR, &regvalue);
-  regvalue |= (PHY_ISFR_INT4);
+  HAL_ETH_ReadPHYRegister(&heth, PHY_MICR, &regvalue);
+  
+  regvalue |= (PHY_MICR_INT_EN | PHY_MICR_INT_OE);
 
-  /* Enable Interrupt on change of link status */ 
-  HAL_ETH_WritePHYRegister(&heth, PHY_ISFR , regvalue );
+  /* Enable Interrupts */
+  HAL_ETH_WritePHYRegister(&heth, PHY_MICR, regvalue );
   
   /* Read Register Configuration */
-  HAL_ETH_ReadPHYRegister(&heth, PHY_ISFR , &regvalue);
+  HAL_ETH_ReadPHYRegister(&heth, PHY_MISR, &regvalue);
+  
+  regvalue |= PHY_MISR_LINK_INT_EN;
+    
+  /* Enable Interrupt on change of link status */
+  HAL_ETH_WritePHYRegister(&heth, PHY_MISR, regvalue);
 
 /* USER CODE BEGIN PHY_POST_CONFIG */ 
     
