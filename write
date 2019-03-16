@@ -1,0 +1,6 @@
+#!/bin/sh
+
+dd if=build/ArchMax.bin of=/cygdrive/d/ArchMax.bin conv=fsync
+
+sleep 2
+echo hit reset button when red light is done
