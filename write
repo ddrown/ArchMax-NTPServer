@@ -1,6 +1,19 @@
 #!/bin/sh
 
-dd if=build/ArchMax.bin of=/cygdrive/d/ArchMax.bin conv=fsync
+DESTDIR=/cygdrive/d/
+OPTS="conv=fsync"
 
-sleep 2
+if [ -d /Volumes/DAPLINK ]; then
+  DESTDIR=/Volumes/DAPLINK
+  OPTS=""
+fi
+
+dd if=build/ArchMax.bin of=$DESTDIR/ArchMax.bin $OPTS
+
+if [ -z "$OPTS" ]; then
+  sync
+else
+  sleep 2
+fi
+
 echo hit reset button when red light is done
