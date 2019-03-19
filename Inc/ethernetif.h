@@ -26,7 +26,7 @@
 
 /* Within 'USER CODE' section, code will be kept by default at each generation */
 /* USER CODE BEGIN 0 */
-
+extern ETH_HandleTypeDef heth;
 /* USER CODE END 0 */
 
 /* Exported functions ------------------------------------------------------- */

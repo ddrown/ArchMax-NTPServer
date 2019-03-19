@@ -203,6 +203,32 @@ static void ETH_InitCallbacksToDefault(ETH_HandleTypeDef *heth);
   * @{
   */
 
+#define PHY_ADVERTISE                   ((uint16_t)0x04)    /*!< Auto-Negotiate advertisement Register */
+
+#define PHY_ADVERTISE_10HALF		0x0020
+#define PHY_ADVERTISE_10FULL		0x0040
+#define PHY_ADVERTISE_100HALF		0x0080
+#define PHY_ADVERTISE_100FULL		0x0100
+static HAL_StatusTypeDef SetAutoNegotiate(ETH_HandleTypeDef *heth) {
+  uint32_t phyreg;
+
+  if(HAL_ETH_ReadPHYRegister(heth, PHY_ADVERTISE, &phyreg) != HAL_OK) {
+    return HAL_TIMEOUT;
+  }
+
+  phyreg |= PHY_ADVERTISE_10HALF|PHY_ADVERTISE_10FULL|PHY_ADVERTISE_100HALF|PHY_ADVERTISE_100FULL;
+
+  /* Set speed/duplex auto-negotiate parameters */
+  if((HAL_ETH_WritePHYRegister(heth, PHY_ADVERTISE, phyreg)) != HAL_OK) {
+    return HAL_TIMEOUT;
+  }
+
+  /* Delay to assure PHY configuration */
+  HAL_Delay(PHY_CONFIG_DELAY);
+
+  return HAL_OK;
+}
+
 /**
   * @brief  Initializes the Ethernet MAC and DMA according to default
   *         parameters.
@@ -342,6 +368,36 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
   
   if((heth->Init).AutoNegotiation != ETH_AUTONEGOTIATION_DISABLE)
   {
+    if(SetAutoNegotiate(heth) != HAL_OK) {
+      /* In case of write timeout */
+      err = ETH_ERROR;
+
+      /* Config MAC and DMA */
+      ETH_MACDMAConfig(heth, err);
+
+      /* Set the ETH peripheral state to READY */
+      heth->State = HAL_ETH_STATE_READY;
+
+      /* Return HAL_ERROR */
+      return HAL_ERROR;
+    }
+
+    /* Enable Auto-Negotiation */
+    if((HAL_ETH_WritePHYRegister(heth, PHY_BCR, PHY_AUTONEGOTIATION)) != HAL_OK)
+    {
+      /* In case of write timeout */
+      err = ETH_ERROR;
+
+      /* Config MAC and DMA */
+      ETH_MACDMAConfig(heth, err);
+
+      /* Set the ETH peripheral state to READY */
+      heth->State = HAL_ETH_STATE_READY;
+
+      /* Return HAL_ERROR */
+      return HAL_ERROR;   
+    }
+
     /* Get tick */
     tickstart = HAL_GetTick();
     
@@ -368,23 +424,6 @@ HAL_StatusTypeDef HAL_ETH_Init(ETH_HandleTypeDef *heth)
       }
     } while (((phyreg & PHY_LINKED_STATUS) != PHY_LINKED_STATUS));
 
-    
-    /* Enable Auto-Negotiation */
-    if((HAL_ETH_WritePHYRegister(heth, PHY_BCR, PHY_AUTONEGOTIATION)) != HAL_OK)
-    {
-      /* In case of write timeout */
-      err = ETH_ERROR;
-      
-      /* Config MAC and DMA */
-      ETH_MACDMAConfig(heth, err);
-      
-      /* Set the ETH peripheral state to READY */
-      heth->State = HAL_ETH_STATE_READY;
-      
-      /* Return HAL_ERROR */
-      return HAL_ERROR;   
-    }
-    
     /* Get tick */
     tickstart = HAL_GetTick();
     

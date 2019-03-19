@@ -1,6 +1,7 @@
 #include "main.h"
 #include "commandline.h"
 #include "uart.h"
+#include "ethernetif.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -8,26 +9,90 @@
 static void print_help() {
   write_uart_s(
   "commands:\n"
+  "link - show state at link up\n"
+  "phy - show PHY state\n"
+  "blink - blink LED\n"
   "help - print help\n"
   );
 }
 
-static void run_command(char *cmdline) {
-/*  if(strcmp("temp", cmdline) == 0) {
-    print_last_temp();
-  } else if(strcmp("vcc", cmdline) == 0) {
-    print_last_vcc();
-  } else if(strcmp("ppb", cmdline) == 0) {
-    print_timer_ppb();
-  } else if(strcmp("offset", cmdline) == 0) {
-    print_timer_offset();
-  } else if(strncmp("o ", cmdline, 2) == 0) {
-    add_offset_cmdline(cmdline+2);
-  } else if(strncmp("f ", cmdline, 2) == 0) {
-    set_frequency_cmdline(cmdline+2);
-  } else { */
+static void link_status() {
+  write_uart_s("link: ");
+ 
+  if(heth.Init.DuplexMode == ETH_MODE_FULLDUPLEX) {
+    write_uart_s("Full ");
+  } else if(heth.Init.DuplexMode == ETH_MODE_HALFDUPLEX) {
+    write_uart_s("Half ");
+  } else {
+    write_uart_s("???? ");
+  }
 
-  print_help();
+  if(heth.Init.Speed == ETH_SPEED_10M) {
+    write_uart_s("10M\n");
+  } else if(heth.Init.Speed == ETH_SPEED_100M) {
+    write_uart_s("100M\n");
+  } else {
+    write_uart_s("???\n");
+  }
+}
+
+static void phy_status() {
+  uint32_t phyreg;
+
+  if((HAL_ETH_ReadPHYRegister(&heth, PHY_SR, &phyreg)) != HAL_OK) {
+    write_uart_s("phy read failed\n");
+    return;
+  }
+
+  if((phyreg & 0b1) == 0) {
+    write_uart_s("link: no\n");
+  } else {
+    write_uart_s("link: yes\n");
+  }
+
+  if((phyreg & 0b10) == 0) {
+    write_uart_s("speed: 100M\n");
+  } else {
+    write_uart_s("speed: 10M\n");
+  }
+
+  if((phyreg & 0b100) == 0) {
+    write_uart_s("duplex: half\n");
+  } else {
+    write_uart_s("duplex: full\n");
+  }
+
+  if((phyreg & 0b1000) != 0) {
+    write_uart_s("loopback: on\n");
+  }
+
+  if((phyreg & 0b10000) == 0) {
+    write_uart_s("auto-neg: incomplete\n");
+  }
+
+  if((phyreg & 0b100000) != 0) {
+    write_uart_s("jabber detected\n");
+  }
+
+  if((phyreg & 0b1000000) != 0) {
+    write_uart_s("remote fault detected\n");
+  }
+
+  if((phyreg & 0b100000000) != 0) {
+    write_uart_s("received code word page\n");
+  }
+}
+
+static void run_command(char *cmdline) {
+  if(strcmp("blink", cmdline) == 0) {
+    HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
+  } else if(strcmp("link", cmdline) == 0) {
+    link_status();
+  } else if(strcmp("phy", cmdline) == 0) {
+    phy_status();
+  } else {
+    print_help();
+  }
 }
 
 void cmdline_prompt() {
