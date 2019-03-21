@@ -26,6 +26,7 @@
 /* USER CODE BEGIN Includes */
 #include "uart.h"
 #include "commandline.h"
+#include "ping.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -94,6 +95,7 @@ int main(void)
   MX_USART6_UART_Init();
   MX_LWIP_Init();
   /* USER CODE BEGIN 2 */
+  ping_init();
   write_uart_s("init done\n");
   cmdline_prompt();
   /* USER CODE END 2 */

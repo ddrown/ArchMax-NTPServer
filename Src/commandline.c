@@ -2,6 +2,7 @@
 #include "commandline.h"
 #include "uart.h"
 #include "ethernetif.h"
+#include "ping.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -12,6 +13,7 @@ static void print_help() {
   "link - show state at link up\n"
   "phy - show PHY state\n"
   "blink - blink LED\n"
+  "ping [ip] - ping ip\n"
   "help - print help\n"
   );
 }
@@ -90,6 +92,8 @@ static void run_command(char *cmdline) {
     link_status();
   } else if(strcmp("phy", cmdline) == 0) {
     phy_status();
+  } else if(strncmp("ping ", cmdline, 5) == 0) {
+    ping_send(cmdline+5);
   } else {
     print_help();
   }

@@ -25,6 +25,17 @@ void write_uart_i(int32_t i) {
   write_uart_s(buffer);
 }
 
+void write_uart_hex(uint8_t i) {
+  char buffer[3];
+  utoa(i, buffer, 16);
+  if(buffer[1] == '\0') {
+    buffer[2] = '\0';
+    buffer[1] = buffer[0];
+    buffer[0] = '0';
+  }
+  write_uart_s(buffer);
+}
+
 uint8_t uartData;
 char uartBuffer[10];
 uint8_t start = 0, end = 0, overrun = 0;

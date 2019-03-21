@@ -60,6 +60,7 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_exti.c \
 Src/system_stm32f4xx.c \
 Src/lwip.c \
 Src/ethernetif.c \
+Src/ping.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c \
 Middlewares/Third_Party/LwIP/src/netif/ppp/auth.c \
 Middlewares/Third_Party/LwIP/src/netif/ppp/ccp.c \
@@ -156,6 +157,7 @@ AS = $(PREFIX)gcc -x assembler-with-cpp
 CP = $(PREFIX)objcopy
 SZ = $(PREFIX)size
 endif
+READELF = $(PREFIX)readelf
 HEX = $(CP) -O ihex
 BIN = $(CP) -O binary -S
  
@@ -255,6 +257,7 @@ $(BUILD_DIR)/%.o: %.s Makefile | $(BUILD_DIR)
 $(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) Makefile
 	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
 	$(SZ) $@
+	$(READELF) -e $@ | grep -B1 LOAD
 
 $(BUILD_DIR)/%.hex: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(HEX) $< $@
