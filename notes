@@ -1,0 +1,79 @@
+lwip notes:
+ lwip's NO_SYS mode - no threading
+ uart write is blocking, so that slows down ping
+
+Src/ethernetif - low level ethernet adapter
+ low_level_init - mac address and PHY
+  - no real mac address assigned to these boards
+  - microchip sells i2c eeproms with EUI48s built in for $0.25/1
+ low_level_output - copy pbuf into dma txdesc
+ low_level_input - copy dma rxdesc into pbuf (uses polling GetReceivedFrame)
+ ethernetif_input - calls low_level_input, then netif->input
+ ethernetif_update_config - called on link change (disabled)
+
+Src/lwip - adapter to lwip above ethernetif
+ MX_LWIP_Init - setup
+ MX_LWIP_Process - call in main loop to rx and check timers
+
+Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c
+ HAL_ETH_GetReceivedFrame - polling
+ HAL_ETH_GetReceivedFrame_IT - interrupt
+__weak void HAL_ETH_RxCpltCallback(ETH_HandleTypeDef *heth)
+__weak void HAL_ETH_TxCpltCallback(ETH_HandleTypeDef *heth)
+__weak void HAL_ETH_ErrorCallback(ETH_HandleTypeDef *heth)
+
+dma notes:
+DMA checks the descriptor status?
+      dmarxdesc->Status |= ETH_DMARXDESC_OWN;
+      if((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET)
+RX and TX buffers are circular linked lists?
+
+timestamp choices:
+ pbuf?
+ handle the packet directly in low_level_input?
+ This PTP trigger signal is connected to the TIM2 ITR1 input selectable by software. The connection is enabled through bits 11 and 10 in the TIM2 option register (TIM2_OR)
+ RX: ETH_PTPTSCR_TSE
+ TX: ETH_DMATXDESC_TTSE
+ TSSIPV4FE: Time stamp snapshot for IPv4 frames enable - When this bit is set, the time stamp snapshot is taken for IPv4 frames.
+ TSSIPV6FE: Time stamp snapshot for IPv6 frames enable - When this bit is set, the time stamp snapshot is taken for IPv6 frames.
+ TSSSR: Time stamp subsecond rollover: digital or binary rollover control - rollover at 999,999,999 (set) or 0x7FFFFFFF (clear)
+ TSSARFE: Time stamp snapshot for all received frames enable - When this bit is set, the time stamp snapshot is enabled for all frames received by the core
+ TSARU: Time stamp addend register update - fine correction
+ TSSTU: Time stamp system time update - corse correction
+ TSSTI: Time stamp system time initialize
+ TSFCU: Time stamp fine or coarse update
+ TSE: Time stamp enable - enable/disable system
+ ETH_PTPSSIR - subsecond increment amount 20ns/(1000000000ns/2^31counts) = 42.949672960068
+ ETH_PTPTSHR - seconds
+ ETH_PTPTSLR - subseconds (bit 31 = +/-)
+ ETH_PTPTSHUR - seconds init/update
+ ETH_PTPTSLUR - subsecond init/update (bit 31 = set- clear+)
+ ETH_PTPTSAR - fine adjust (in 2^32 overflows per 20ns) 2^32*50MHz/66MHz = 3253763103 (for 66MHz system clock)
+ ETH_PTPTTHR - target time high
+ ETH_PTPTTLR - target time low
+ 
+
+
+PHY notes:
+ AN0/AN1 are configured for half-duplex mode by default, code has to change that for full duplex
+ DP83848J - http://www.ti.com/lit/ds/symlink/dp83848j.pdf
+
+interrupts at 100kpps in + out are a problem
+should tx timestamps be used?
+should per client stats be gathered?
+how to report stat data - tcp?
+GPS data & parsing
+PPS aligned with NIC timestamps
+NIC timestamps in NTP timescale?
+NIC clock control adjustments
+NTP root delay and dispersion calculation
+TX timestamps used to measure DMA delay and then assume it's constant?
+how do multiple packets work with DMA - one at a time?
+100kpps = around 1790 cycles per packet (10us)
+ddos amplification?
+RX timestamps should be easy
+      "The PTP protocol and the DMA descriptors ring mode are not supported in this driver"
+  uint32_t   TimeStampLow;          /*!< Time Stamp Low value for transmit and receive */
+  uint32_t   TimeStampHigh;         /*!< Time Stamp High value for transmit and receive */
+how to turn on enhanced desciptors for timestamps?
+are hardware checksums disabled?
