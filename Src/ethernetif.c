@@ -413,6 +413,8 @@ static struct pbuf * low_level_input(struct netif *netif)
   if (p != NULL)
   {
     dmarxdesc = heth.RxFrameInfos.FSRxDesc;
+    p->timestamp_seconds = dmarxdesc->TimeStampHigh;
+    p->timestamp_subseconds = dmarxdesc->TimeStampLow;
     bufferoffset = 0;
     for(q = p; q != NULL; q = q->next)
     {

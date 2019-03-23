@@ -27,6 +27,7 @@
 #include "uart.h"
 #include "commandline.h"
 #include "ping.h"
+#include "ptp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -111,6 +112,7 @@ int main(void)
   MX_LWIP_Init();
   /* USER CODE BEGIN 2 */
   ping_init();
+  ptp_init();
   write_uart_s("init done\n");
   cmdline_prompt();
   /* USER CODE END 2 */

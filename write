@@ -2,15 +2,21 @@
 
 DESTDIR=/cygdrive/d/
 OPTS="conv=fsync"
+SYNC=0
 
 if [ -d /Volumes/DAPLINK ]; then
   DESTDIR=/Volumes/DAPLINK
   OPTS=""
+  SYNC=1
+elif [ -d /mnt/sdcard -a -f /mnt/sdcard/MBED.HTM ]; then
+  DESTDIR=/mnt/sdcard
+  OPTS="oflag=dsync bs=512 status=progress"
+  SYNC=1
 fi
 
 dd if=build/ArchMax.bin of=$DESTDIR/ArchMax.bin $OPTS
 
-if [ -z "$OPTS" ]; then
+if [ "$SYNC" == 1 ]; then
   sync
 else
   sleep 2

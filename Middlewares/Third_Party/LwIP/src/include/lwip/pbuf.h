@@ -137,6 +137,8 @@ typedef enum {
 #define PBUF_FLAG_LLMCAST   0x10U
 /** indicates this pbuf includes a TCP FIN flag */
 #define PBUF_FLAG_TCP_FIN   0x20U
+/** indicates this pbuf should timestamp on transmit */
+#define PBUF_FLAG_TIMESTAMP 0x40U
 
 /** Main packet buffer struct */
 struct pbuf {
@@ -170,6 +172,10 @@ struct pbuf {
    * the stack itself, or pbuf->next pointers from a chain.
    */
   u16_t ref;
+
+  // RX timestamp
+  u32_t timestamp_seconds;
+  u32_t timestamp_subseconds;
 };
 
 

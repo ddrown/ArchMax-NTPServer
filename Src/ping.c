@@ -1,6 +1,7 @@
 #include "main.h"
 #include "ping.h"
 #include "uart.h"
+#include "ptp.h"
 
 #include "lwip/raw.h"
 #include "lwip/icmp.h"
@@ -8,11 +9,11 @@
 // reference used: https://github.com/goertzenator/lwip/blob/master/contrib-1.4.0/apps/ping/ping.c
 
 static struct raw_pcb *ping_pcb = NULL;
-static uint32_t start_ping = 0;
+static struct timestamp start_ping;
 static uint16_t ping_seq = 0;
 
 static unsigned char ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const struct ip_addr *addr) {
-  uint32_t pingrtt = HAL_GetTick() - start_ping;
+  struct timestamp end_ping;
   uint8_t *packet = (uint8_t *)p->payload;
   struct ip_hdr *iph = (struct ip_hdr *)packet;
   if(IPH_V(iph) != 4) {
@@ -22,20 +23,23 @@ static unsigned char ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, c
     return 0;
   }
 
+  // IPv4 header default size is 5*4=20 bytes
   struct icmp_echo_hdr *icmph = (struct icmp_echo_hdr *)(packet + 20);
   if(ICMPH_TYPE(icmph) != ICMP_ER) {
     return 0;
   }
 
+  end_ping.seconds = p->timestamp_seconds;
+  end_ping.subseconds = p->timestamp_subseconds;
+
   write_uart_s("rtt ");
-  write_uart_u(pingrtt);
-  write_uart_s(" ms\n");
+  write_uart_u(ptp_ns_diff(&start_ping, &end_ping));
+  write_uart_s(" ns\n");
   write_uart_s("id: ");
   write_uart_u(ntohs(icmph->id));
   write_uart_s(" seq: ");
   write_uart_u(ntohs(icmph->seqno));
   write_uart_s("\n");
-  start_ping = 0;
 
   pbuf_free(p);
   return 1;
@@ -64,7 +68,7 @@ void ping_send(const char *dest) {
   icmph->id     = htons(12345);
   icmph->seqno  = htons(ping_seq++);
 
-  start_ping = HAL_GetTick();
+  ptp_timestamp(&start_ping);
   raw_sendto(ping_pcb, p, &dest_addr);
   pbuf_free(p);
 }

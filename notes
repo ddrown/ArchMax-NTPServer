@@ -1,6 +1,18 @@
 lwip notes:
  lwip's NO_SYS mode - no threading
  uart write is blocking, so that slows down ping
+ LwIP heap in lwip/opt.h: #define MEM_SIZE 1600
+  = 200039ac 00000653 B ram_heap
+ Packet buffer in lwip/opt.h:
+  #define PBUF_POOL_BUFSIZE               LWIP_MEM_ALIGN_SIZE(590)
+  #define PBUF_POOL_SIZE                  16
+  16*590 = 9440
+  actual = 9731
+  = 20004210 00002603 B memp_memory_PBUF_POOL_base
+ Src/ethernetif.c has the Tx and Rx descriptors for DMA:
+  = 20000908 000017d0 B Rx_Buff
+  = 200021a0 000017d0 B Tx_Buff
+
 
 Src/ethernetif - low level ethernet adapter
  low_level_init - mac address and PHY
@@ -34,6 +46,7 @@ timestamp choices:
  This PTP trigger signal is connected to the TIM2 ITR1 input selectable by software. The connection is enabled through bits 11 and 10 in the TIM2 option register (TIM2_OR)
  RX: ETH_PTPTSCR_TSE
  TX: ETH_DMATXDESC_TTSE
+ Clock is 168MHz
  TSSIPV4FE: Time stamp snapshot for IPv4 frames enable - When this bit is set, the time stamp snapshot is taken for IPv4 frames.
  TSSIPV6FE: Time stamp snapshot for IPv6 frames enable - When this bit is set, the time stamp snapshot is taken for IPv6 frames.
  TSSSR: Time stamp subsecond rollover: digital or binary rollover control - rollover at 999,999,999 (set) or 0x7FFFFFFF (clear)
@@ -43,12 +56,20 @@ timestamp choices:
  TSSTI: Time stamp system time initialize
  TSFCU: Time stamp fine or coarse update
  TSE: Time stamp enable - enable/disable system
- ETH_PTPSSIR - subsecond increment amount 20ns/(1000000000ns/2^31counts) = 42.949672960068
+ ETH_PTPSSIR - subsecond increment amount 5.952ns/(1000000000ns/2^31counts) = 12.781822672916,   13 = .000000006053
  ETH_PTPTSHR - seconds
  ETH_PTPTSLR - subseconds (bit 31 = +/-)
  ETH_PTPTSHUR - seconds init/update
  ETH_PTPTSLUR - subsecond init/update (bit 31 = set- clear+)
  ETH_PTPTSAR - fine adjust (in 2^32 overflows per 20ns) 2^32*50MHz/66MHz = 3253763103 (for 66MHz system clock)
+2^32 overflow per 6.053ns at 168MHz
+(1/.000000006053*2^32)/168000000 = 4223572034.331657658931
+
+6.053ns/tick
+1/.000000006053 = 165207335.205683132331 Hz
+4223572034 increment at 168MHz, overflows 32 bit at:
+168000000*4223572034/2^32 = 165207335.192710161209 Hz
+
  ETH_PTPTTHR - target time high
  ETH_PTPTTLR - target time low
  
