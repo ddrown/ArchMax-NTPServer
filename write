@@ -11,7 +11,7 @@ if [ -d /Volumes/DAPLINK ]; then
 elif [ -d /mnt/sdcard -a -f /mnt/sdcard/MBED.HTM ]; then
   DESTDIR=/mnt/sdcard
   OPTS="oflag=dsync bs=512 status=progress"
-  SYNC=1
+  SYNC=0
 fi
 
 dd if=build/ArchMax.bin of=$DESTDIR/ArchMax.bin $OPTS
