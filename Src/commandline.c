@@ -21,9 +21,9 @@ static void print_help() {
   "ptp - ptp status\n"
   "count - ptp counters\n"
   "step [8bit] - set subsecond step\n"
-  "freqdiv [32bit] - set subsecond freq div\n"
-  "sec [32bit] - set seconds\n"
-  "subs [32bit] - set sub seconds\n"
+  "freqdiv [32bit] - change subsecond freq div\n"
+  "sec [32bit] - change seconds\n"
+  "subs [32bit] - change sub seconds\n"
   "help - print help\n"
   );
 }
@@ -117,7 +117,7 @@ static void run_command(char *cmdline) {
     uint8_t step = atoi(cmdline+5);
     ptp_set_step(step);
   } else if(strncmp("freqdiv ", cmdline, 8) == 0) {
-    uint32_t freqdiv = atol(cmdline+8);
+    int32_t freqdiv = atoi(cmdline+8);
     ptp_set_freq_div(freqdiv);
   } else if(strncmp("sec ", cmdline, 4) == 0) {
     int32_t sec = atol(cmdline+4);

@@ -25,7 +25,7 @@ void ptp_init() {
   heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSE; // enable PTP system
   heth.Instance->PTPTSCR &= ~ETH_PTPTSSR_TSSSR_Msk; // use 2^31 subseconds
   //heth.Instance->PTPTSAR = 4223572034; // 168MHz reduced to 6.053ns/tick (4223572034/2^32)
-  heth.Instance->PTPTSAR = 4228489404; // local clock is 1164.268 ppm slow
+  heth.Instance->PTPTSAR = 4227995019; // local clock is 1049.160 ppm slow
   heth.Instance->PTPSSIR = 13; // 6.053ns/tick = 13/2^31
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
@@ -45,8 +45,8 @@ void ptp_set_step(uint8_t step) {
   heth.Instance->PTPSSIR = step;
 }
 
-void ptp_set_freq_div(uint32_t div) {
-  heth.Instance->PTPTSAR = div;
+void ptp_set_freq_div(int32_t div) {
+  heth.Instance->PTPTSAR += div;
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
   }
@@ -61,7 +61,7 @@ static void ptp_set_update_time() {
 }
 
 void ptp_update_s(int32_t sec) {
-  if(sec < 0) { // TODO: does this work right?
+  if(sec < 0) {
     sec = sec * -1;
     heth.Instance->PTPTSLUR = ETH_PTPTSLUR_TSUPNS; // mark it as a negative offset
   } else {
@@ -71,7 +71,6 @@ void ptp_update_s(int32_t sec) {
   ptp_set_update_time();
 }
 
-// TODO: this doesn't do what I expect
 void ptp_update_subs(int32_t subs) {
   heth.Instance->PTPTSHUR = 0;
   if(subs < 0) {

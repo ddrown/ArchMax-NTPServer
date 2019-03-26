@@ -12,7 +12,7 @@ void ptp_counters();
 void ptp_timestamp(struct timestamp *now);
 uint64_t ptp_ns_diff(struct timestamp *start, struct timestamp *end);
 void ptp_set_step(uint8_t step);
-void ptp_set_freq_div(uint32_t div);
+void ptp_set_freq_div(int32_t div);
 void ptp_update_s(int32_t sec);
 void ptp_update_subs(int32_t subs);
 

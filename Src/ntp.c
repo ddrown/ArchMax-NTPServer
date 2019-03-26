@@ -29,6 +29,10 @@ struct ntp_packet {
   uint32_t tx_subs;
 };
 
+uint32_t last_rx_s = 0;
+uint32_t last_rx_subs = 0;
+struct timestamp end_ntp = {.seconds = 0, .subseconds = 0};
+
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struct ip_addr *addr, u16_t port) {
   if(p->tot_len < sizeof(struct ntp_packet)) {
     write_uart_s("short packet: ");
@@ -52,43 +56,55 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
     return;
   }
 
-  struct timestamp end_ntp;
   struct ntp_packet *response = (struct ntp_packet *)p->payload;
+  char type[3] = "? ";
+
+  if(response->origin_s == htonl(end_ntp.seconds) && 
+      response->origin_subs == htonl(end_ntp.subseconds*2)) {
+    type[0] = 'I';
+  } else if(response->origin_s == htonl(start_ntp.seconds) && 
+      response->origin_subs == htonl(start_ntp.subseconds*2)) {
+    type[0] = 'B';
+  }
+
 
   end_ntp.seconds = p->timestamp_seconds;
   end_ntp.subseconds = p->timestamp_subseconds;
 
+  last_rx_s = response->rx_s;
+  last_rx_subs = response->rx_subs;
+
+  write_uart_s(type);
   write_uart_u(ptp_ns_diff(&start_ntp, &end_ntp));
-  write_uart_s(",");
+  write_uart_s(" ");
 
   write_uart_u(ntohl(response->rx_s));
-  write_uart_s(",");
+  write_uart_s(" ");
   write_uart_u(ntohl(response->rx_subs));
-  write_uart_s(",");
+  write_uart_s(" ");
   write_uart_u(ntohl(response->tx_s));
-  write_uart_s(",");
+  write_uart_s(" ");
   write_uart_u(ntohl(response->tx_subs));
-  write_uart_s(",");
+  write_uart_s(" ");
 
   write_uart_u(end_ntp.seconds);
-  write_uart_s(",");
+  write_uart_s(" ");
   write_uart_u(end_ntp.subseconds);
-  write_uart_s("\n");
+  write_uart_s(" ");
 
-  int64_t offset_s = ntohl(response->tx_s) - (int64_t)end_ntp.seconds;
-  int64_t offset_sub = ntohl(response->tx_subs) - ((int64_t)end_ntp.subseconds)*2;
+  int64_t offset_s = ntohl(response->rx_s) - (int64_t)start_ntp.seconds;
+  int64_t offset_sub = ntohl(response->rx_subs)/2 - (int64_t)start_ntp.subseconds;
 
   if(offset_sub < 0 && offset_s > 0) {
     offset_s--;
-    offset_sub += 4294967296LL;
+    offset_sub += 2147483648LL;
   } else if(offset_sub > 0 && offset_s < 0) {
     offset_s++;
-    offset_sub -= 4294967296LL;
+    offset_sub -= 2147483648LL;
   }
 
-  write_uart_s("offset ");
   write_uart_64i(offset_s);
-  write_uart_s(",");
+  write_uart_s(" ");
   write_uart_64i(offset_sub);
   write_uart_s("\n");
 
@@ -115,8 +131,15 @@ void ntp_send(const char *dest) {
   request->leap_version_mode = 0b11100011;   // LI=unsync, Version=4, Mode=3(client)
   request->poll = 6; // 2^6 = 64s
   request->precision = -27;  // Peer Clock Precision in 2^x seconds, -27=6ns
+  request->origin_s = last_rx_s;
+  request->origin_subs = last_rx_subs;
+  request->rx_s = htonl(end_ntp.seconds);
+  request->rx_subs = htonl(end_ntp.subseconds*2);
 
   ptp_timestamp(&start_ntp);
+  request->tx_s = htonl(start_ntp.seconds);
+  request->tx_subs = htonl(start_ntp.subseconds*2);
+
   udp_sendto(ntp_pcb, p, &dest_addr, 123);
   pbuf_free(p);
 }
