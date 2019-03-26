@@ -24,18 +24,63 @@
 void ptp_init() {
   heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSE; // enable PTP system
   heth.Instance->PTPTSCR &= ~ETH_PTPTSSR_TSSSR_Msk; // use 2^31 subseconds
-  heth.Instance->PTPTSAR = 4223572034; // 168MHz reduced to 6.053ns/tick (4223572034/2^32)
+  //heth.Instance->PTPTSAR = 4223572034; // 168MHz reduced to 6.053ns/tick (4223572034/2^32)
+  heth.Instance->PTPTSAR = 4228489404; // local clock is 1164.268 ppm slow
   heth.Instance->PTPSSIR = 13; // 6.053ns/tick = 13/2^31
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
   }
   heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSARU | ETH_PTPTSCR_TSFCU; // set fine clock control & update addend
 
-  heth.Instance->PTPTSHUR = 0; // start at s=0
+  heth.Instance->PTPTSHUR = 3762467957; // start at Mar 25 01:59:17 UTC 2019
   heth.Instance->PTPTSLUR = 0; // and subsec=0
   heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSSTI; // init time
 
   heth.Instance->PTPTSCR |= ETH_PTPTSSR_TSSARFE; // Time stamp snapshot for all received frames
+
+  heth.Instance->MACIMR |= ETH_MACIMR_TSTIM; // turn off timestamp trigger irq
+}
+
+void ptp_set_step(uint8_t step) {
+  heth.Instance->PTPSSIR = step;
+}
+
+void ptp_set_freq_div(uint32_t div) {
+  heth.Instance->PTPTSAR = div;
+  while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
+    // TODO: timeout
+  }
+  heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSARU; // update addend
+}
+
+static void ptp_set_update_time() {
+  while(heth.Instance->PTPTSCR & (ETH_PTPTSCR_TSSTI_Msk|ETH_PTPTSCR_TSSTU_Msk)) { // wait for previous time set/update to finish
+    // TODO: timeout
+  }
+  heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSSTU; // apply update
+}
+
+void ptp_update_s(int32_t sec) {
+  if(sec < 0) { // TODO: does this work right?
+    sec = sec * -1;
+    heth.Instance->PTPTSLUR = ETH_PTPTSLUR_TSUPNS; // mark it as a negative offset
+  } else {
+    heth.Instance->PTPTSLUR = 0;
+  }
+  heth.Instance->PTPTSHUR = sec;
+  ptp_set_update_time();
+}
+
+// TODO: this doesn't do what I expect
+void ptp_update_subs(int32_t subs) {
+  heth.Instance->PTPTSHUR = 0;
+  if(subs < 0) {
+    subs = subs * -1;
+    heth.Instance->PTPTSLUR = ETH_PTPTSLUR_TSUPNS | (uint32_t)subs;
+  } else {
+    heth.Instance->PTPTSLUR = subs;
+  }
+  ptp_set_update_time();
 }
 
 void ptp_status() {
@@ -97,6 +142,7 @@ void ptp_status() {
     write_uart_s("mac");
   }
   write_uart_s("\n");
+
   write_uart_s("status: ");
   if(heth.Instance->PTPTSSR & ETH_PTPTSSR_TSTTR) {
     write_uart_s("target ");
@@ -131,7 +177,6 @@ uint64_t ptp_ns_diff(struct timestamp *start, struct timestamp *end) {
 
 void ptp_counters() {
   struct timestamp now;
-  uint32_t r1, r2;
 
   ptp_timestamp(&now);
 
@@ -147,15 +192,5 @@ void ptp_counters() {
   write_uart_u(heth.Instance->PTPTTHR);
   write_uart_s(".");
   write_uart_u(heth.Instance->PTPTTLR);
-  write_uart_s("\nfastest=");
-
-  r1 = heth.Instance->PTPTSLR;
-  r2 = heth.Instance->PTPTSLR;
-
-  write_uart_u(r1);
-  write_uart_s(" ");
-  write_uart_u(r2);
-  write_uart_s(" ");
-  write_uart_u(r2-r1);
   write_uart_s("\n");
 }

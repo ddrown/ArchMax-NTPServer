@@ -26,8 +26,9 @@
 /* USER CODE BEGIN Includes */
 #include "uart.h"
 #include "commandline.h"
-#include "ping.h"
 #include "ptp.h"
+#include "ping.h"
+#include "ntp.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -111,14 +112,16 @@ int main(void)
   MX_USART3_UART_Init();
   MX_LWIP_Init();
   /* USER CODE BEGIN 2 */
-  ping_init();
   ptp_init();
+  ping_init();
+  ntp_init();
   write_uart_s("init done\n");
   cmdline_prompt();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t last_ntp = HAL_GetTick();
   while (1)
   {
     /* USER CODE END WHILE */
@@ -128,6 +131,10 @@ int main(void)
       cmdline_addchr(uart_rx_data());
     }
     MX_LWIP_Process();
+    if(HAL_GetTick() - last_ntp > 1000) {
+      last_ntp = HAL_GetTick();
+      ntp_poll();
+    }
   }
   /* USER CODE END 3 */
 }

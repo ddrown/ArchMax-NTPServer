@@ -12,19 +12,27 @@ static struct raw_pcb *ping_pcb = NULL;
 static struct timestamp start_ping;
 static uint16_t ping_seq = 0;
 
+#define DEFAULT_IPV4_HEADER_LEN 20
+
 static unsigned char ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, const struct ip_addr *addr) {
   struct timestamp end_ping;
+
+  if(p->tot_len < DEFAULT_IPV4_HEADER_LEN+sizeof(struct icmp_echo_hdr)) {
+    write_uart_s("short icmp packet\n");
+    return 0;
+  }
+
   uint8_t *packet = (uint8_t *)p->payload;
   struct ip_hdr *iph = (struct ip_hdr *)packet;
   if(IPH_V(iph) != 4) {
     return 0;
   }
-  if(IPH_HL(iph) != 5) { // TODO: allow more IP headers?
+  if(IPH_HL(iph) != DEFAULT_IPV4_HEADER_LEN/4) { // TODO: allow more IP headers?
     return 0;
   }
 
   // IPv4 header default size is 5*4=20 bytes
-  struct icmp_echo_hdr *icmph = (struct icmp_echo_hdr *)(packet + 20);
+  struct icmp_echo_hdr *icmph = (struct icmp_echo_hdr *)(packet + DEFAULT_IPV4_HEADER_LEN);
   if(ICMPH_TYPE(icmph) != ICMP_ER) {
     return 0;
   }

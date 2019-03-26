@@ -98,3 +98,17 @@ RX timestamps should be easy
   uint32_t   TimeStampHigh;         /*!< Time Stamp High value for transmit and receive */
 how to turn on enhanced desciptors for timestamps?
 are hardware checksums disabled?
+
+leap seconds:
+nav-leap ublox msg?
+look for a :60 seconds msg and jump the time?
+
+ntp client::
+ntp 10.1.2.198
+rtt 275281 ns
+v: 36 st: 1 id: 5460039 poll: 6 prec: -23
+rdelay: 0.256 rdisp: 0.256
+reftime: 3574481376.4036374221 origin: 0.0
+rx: 3675144672.472069126 tx: 3675144672.4092936454
+local rx: 17.165817452 ns
+

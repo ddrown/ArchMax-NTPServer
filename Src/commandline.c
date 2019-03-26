@@ -2,8 +2,9 @@
 #include "commandline.h"
 #include "uart.h"
 #include "ethernetif.h"
-#include "ping.h"
 #include "ptp.h"
+#include "ping.h"
+#include "ntp.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -15,8 +16,14 @@ static void print_help() {
   "phy - show PHY state\n"
   "blink - blink LED\n"
   "ping [ip] - ping ip\n"
+  "ntp [ip] - send ntp request\n"
+  "ntppoll [0/1] - poll every second\n"
   "ptp - ptp status\n"
   "count - ptp counters\n"
+  "step [8bit] - set subsecond step\n"
+  "freqdiv [32bit] - set subsecond freq div\n"
+  "sec [32bit] - set seconds\n"
+  "subs [32bit] - set sub seconds\n"
   "help - print help\n"
   );
 }
@@ -101,6 +108,23 @@ static void run_command(char *cmdline) {
     ptp_counters();
   } else if(strncmp("ping ", cmdline, 5) == 0) {
     ping_send(cmdline+5);
+  } else if(strncmp("ntp ", cmdline, 4) == 0) {
+    ntp_send(cmdline+4);
+  } else if(strncmp("ntppoll ", cmdline, 8) == 0) {
+    uint8_t active = atoi(cmdline+8);
+    ntp_poll_set(active);
+  } else if(strncmp("step ", cmdline, 5) == 0) {
+    uint8_t step = atoi(cmdline+5);
+    ptp_set_step(step);
+  } else if(strncmp("freqdiv ", cmdline, 8) == 0) {
+    uint32_t freqdiv = atol(cmdline+8);
+    ptp_set_freq_div(freqdiv);
+  } else if(strncmp("sec ", cmdline, 4) == 0) {
+    int32_t sec = atol(cmdline+4);
+    ptp_update_s(sec);
+  } else if(strncmp("subs ", cmdline, 5) == 0) {
+    int32_t subs = atol(cmdline+5);
+    ptp_update_subs(subs);
   } else {
     print_help();
   }

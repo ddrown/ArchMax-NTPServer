@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 #include "uart.h"
+#include "int64.h"
 
 void write_uart_ch(char ch) {
   HAL_UART_Transmit(&UART_NAME, (uint8_t *)&ch, 1, 500);
@@ -22,6 +23,18 @@ void write_uart_u(uint32_t i) {
 void write_uart_i(int32_t i) {
   char buffer[12];
   itoa(i, buffer, 10);
+  write_uart_s(buffer);
+}
+
+void write_uart_64i(int64_t i) {
+  char buffer[21];
+  i64toa(i, buffer);
+  write_uart_s(buffer);
+}
+
+void write_uart_64u(uint64_t i) {
+  char buffer[21];
+  u64toa(i, buffer);
   write_uart_s(buffer);
 }
 
