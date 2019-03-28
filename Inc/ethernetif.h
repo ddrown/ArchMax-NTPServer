@@ -40,7 +40,9 @@ u32_t sys_jiffies(void);
 u32_t sys_now(void);
 
 /* USER CODE BEGIN 1 */
-
+extern uint8_t Eth_Timestamp_Next_Tx_Packet;
+void ethernetif_scan_tx_timestamps();
+void TXTimestampCallback(uint32_t TimeStampLow, uint32_t TimeStampHigh);
 /* USER CODE END 1 */
 #endif
 

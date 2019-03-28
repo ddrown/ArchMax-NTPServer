@@ -2,6 +2,7 @@
 #include "ntp.h"
 #include "uart.h"
 #include "ptp.h"
+#include "ethernetif.h"
 
 #include "lwip/udp.h"
 #include <string.h>
@@ -10,30 +11,42 @@ static struct udp_pcb *ntp_pcb = NULL;
 static struct timestamp start_ntp;
 
 struct ntp_packet {
+  // 0
   uint8_t leap_version_mode;
   uint8_t stratum;
   int8_t poll;
   int8_t precision;
+  // 4
   uint16_t root_delay_s;
   uint16_t root_delay_subs;
+  // 8
   uint16_t root_dispersion_s;
   uint16_t root_dispersion_subs;
+  // 12
   uint32_t refid;
   uint32_t reftime_s;
+  // 20
   uint32_t reftime_subs;
   uint32_t origin_s;
+  // 28
   uint32_t origin_subs;
   uint32_t rx_s;
+  // 36
   uint32_t rx_subs;
   uint32_t tx_s;
+  // 44
   uint32_t tx_subs;
+  // 48
 };
 
-uint32_t last_rx_s = 0;
-uint32_t last_rx_subs = 0;
-struct timestamp end_ntp = {.seconds = 0, .subseconds = 0};
+static uint32_t last_rx_s = 0;
+static uint32_t last_rx_subs = 0;
+static struct timestamp end_ntp = {.seconds = 0, .subseconds = 0};
+static struct timestamp last_tx = {.seconds = 0, .subseconds = 0}; 
 
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struct ip_addr *addr, u16_t port) {
+  ethernetif_scan_tx_timestamps(); // check for TX timestamps
+
   if(p->tot_len < sizeof(struct ntp_packet)) {
     write_uart_s("short packet: ");
     write_uart_u(p->tot_len);
@@ -74,6 +87,8 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
   last_rx_s = response->rx_s;
   last_rx_subs = response->rx_subs;
 
+  // T  rtt   rxs        rxsub     txs        txsub      ends       endsub     offs  offsub     Ts         Tsub      T-start
+  // I 354365 3762733097 431815355 3762733093 3366342847 3762467989 231917178 265107 2132235141 3762467989 231186357 14050
   write_uart_s(type);
   write_uart_u(ptp_ns_diff(&start_ntp, &end_ntp));
   write_uart_s(" ");
@@ -106,9 +121,26 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
   write_uart_64i(offset_s);
   write_uart_s(" ");
   write_uart_64i(offset_sub);
-  write_uart_s("\n");
+  write_uart_s(" ");
+  write_uart_u(last_tx.seconds);
+  write_uart_s(" ");
+  write_uart_u(last_tx.subseconds);
+  write_uart_s(" ");
+  if(last_tx.seconds != 0) {
+    write_uart_u(ptp_ns_diff(&start_ntp, &last_tx));
+    last_tx.seconds = 0;
+    last_tx.subseconds = 0;
+    write_uart_s("\n");
+  } else {
+    write_uart_s("-\n");
+  }
 
   pbuf_free(p);
+}
+
+void TXTimestampCallback(uint32_t TimeStampLow, uint32_t TimeStampHigh) {
+  last_tx.seconds = TimeStampHigh;
+  last_tx.subseconds = TimeStampLow;
 }
 
 void ntp_send(const char *dest) {
@@ -140,6 +172,8 @@ void ntp_send(const char *dest) {
   request->tx_s = htonl(start_ntp.seconds);
   request->tx_subs = htonl(start_ntp.subseconds*2);
 
+  // TODO: ARP?
+  Eth_Timestamp_Next_Tx_Packet = 1;
   udp_sendto(ntp_pcb, p, &dest_addr, 123);
   pbuf_free(p);
 }

@@ -41,7 +41,7 @@
 /* Parameters set in STM32CubeMX LwIP Configuration GUI -*/
 /*----- WITH_RTOS disabled (Since FREERTOS is not set) -----*/
 #define WITH_RTOS 0
-/*----- CHECKSUM_BY_HARDWARE disabled -----*/
+/*----- CHECKSUM_BY_HARDWARE disabled - this isn't used anywhere? -----*/
 #define CHECKSUM_BY_HARDWARE 0
 /*-----------------------------------------------------------------------------*/
 

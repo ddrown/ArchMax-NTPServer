@@ -73,7 +73,7 @@ __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethe
 ETH_HandleTypeDef heth;
 
 /* USER CODE BEGIN 3 */
-
+uint8_t Eth_Timestamp_Next_Tx_Packet = 0;
 /* USER CODE END 3 */
 
 /* Private functions ---------------------------------------------------------*/
@@ -170,6 +170,20 @@ void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
 }
 
 /* USER CODE BEGIN 4 */
+void ethernetif_scan_tx_timestamps() {
+  for(uint32_t i = 0; i < ETH_TXBUFNB; i++) {
+    // if the Transmit timestamp status flag is set on the last 
+    if(DMATxDscrTab[i].Status & ETH_DMATXDESC_TTSS && DMATxDscrTab[i].Status & ETH_DMATXDESC_LS) {
+      TXTimestampCallback(DMATxDscrTab[i].TimeStampLow, DMATxDscrTab[i].TimeStampHigh);
+      // if we own the entry, reset it back to 0
+      if(!(DMATxDscrTab[i].Status & ETH_DMATXDESC_OWN)) {
+        DMATxDscrTab[i].Status &= ~(ETH_DMATXDESC_TTSE|ETH_DMATXDESC_TTSS); 
+        DMATxDscrTab[i].TimeStampLow = 0;
+        DMATxDscrTab[i].TimeStampHigh = 0;
+      }
+    }
+  }
+}
 
 /* USER CODE END 4 */
 
@@ -311,17 +325,29 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
   uint32_t payloadoffset = 0;
   DmaTxDesc = heth.TxDesc;
   bufferoffset = 0;
+
+  ethernetif_scan_tx_timestamps();
   
   /* copy frame from pbufs to driver buffers */
   for(q = p; q != NULL; q = q->next)
     {
       /* Is this buffer available? If not, goto error */
+      // TODO - how does this handle adding a packet while one is in TX?
       if((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET)
       {
         errval = ERR_USE;
         goto error;
       }
-    
+ 
+      // clear Timestamp request & timestamp status 
+      DmaTxDesc->Status &= ~(ETH_DMATXDESC_TTSE|ETH_DMATXDESC_TTSS); 
+      DmaTxDesc->TimeStampLow = 0;
+      DmaTxDesc->TimeStampHigh = 0;
+      if(Eth_Timestamp_Next_Tx_Packet && payloadoffset == 0) {  // TTSE only valid on first packet
+        Eth_Timestamp_Next_Tx_Packet = 0;
+        DmaTxDesc->Status |= ETH_DMATXDESC_TTSE;
+      }
+
       /* Get bytes in current lwIP buffer */
       byteslefttocopy = q->len;
       payloadoffset = 0;

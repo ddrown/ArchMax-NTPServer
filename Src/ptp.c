@@ -163,6 +163,7 @@ void ptp_timestamp(struct timestamp *now) {
 uint64_t ptp_ns_diff(struct timestamp *start, struct timestamp *end) {
   uint64_t ns = 0;
 
+  // TODO: counter wraps
   if(end->seconds > start->seconds) {
     ns = end->seconds - start->seconds;
     ns *= SUBSECONDS_PER_SECOND;

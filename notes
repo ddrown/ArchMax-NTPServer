@@ -39,6 +39,7 @@ DMA checks the descriptor status?
       dmarxdesc->Status |= ETH_DMARXDESC_OWN;
       if((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET)
 RX and TX buffers are circular linked lists?
+OSF (SecondFrameOperate) is enabled
 
 timestamp choices:
  pbuf?
@@ -92,12 +93,9 @@ TX timestamps used to measure DMA delay and then assume it's constant?
 how do multiple packets work with DMA - one at a time?
 100kpps = around 1790 cycles per packet (10us)
 ddos amplification?
-RX timestamps should be easy
-      "The PTP protocol and the DMA descriptors ring mode are not supported in this driver"
   uint32_t   TimeStampLow;          /*!< Time Stamp Low value for transmit and receive */
   uint32_t   TimeStampHigh;         /*!< Time Stamp High value for transmit and receive */
-how to turn on enhanced desciptors for timestamps?
-are hardware checksums disabled?
+lwip generated checksums are all disabled, it's relying on the MAC to generate them
 
 leap seconds:
 nav-leap ublox msg?
@@ -124,3 +122,43 @@ adjust counter speed::
 more negative: going too fast
 4228489404-494385
 4227995019
+
+timestamp location:
+stm32f407 TX timestamp on SFD (start frame delimiter)
+stm32f407 RX timestamp on FCS start/payload end? SFD?
+LeoBodnar| i don't think PTP cares - their reference point is start of packet for all timing
+i211 seems to timestamp on the SFD end/start of packet
+i211 has some jitter/latency between RX and TX path (~2us?)
+NTP timestamps are on FCS start/packet end? https://www.eecis.udel.edu/~mills/stamp.html
+
+NTP packet size:
+Ethernet Preamble: 7 bytes
+Ethernet SFD: 1 byte
+- 1588 timestamp reference
+Ethernet header: 14 bytes
+IP header: 20 bytes
+UDP header: 8 bytes
+NTP: 48 bytes
+Ethernet CRC: 4 bytes
+- driver timestamp reference-ish
+Ethernet IPG: 12 bytes
+
+114*8
+=912 bits
+
+changing timestamp location based on packet size:
+912/100000000
+=.000009120 seconds per packet
+100000000/912
+109649 packets per second max
+
++/- 300ppm:
+.000009117
+.000009122
+=5ns (~ +/- 3ns)
+
+94*8
+752 bits excluding preamble, SFD, IPG
+752/100000000
+.000007520
+2x=15040
