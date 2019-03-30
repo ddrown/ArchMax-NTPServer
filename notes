@@ -96,6 +96,7 @@ ddos amplification?
   uint32_t   TimeStampLow;          /*!< Time Stamp Low value for transmit and receive */
   uint32_t   TimeStampHigh;         /*!< Time Stamp High value for transmit and receive */
 lwip generated checksums are all disabled, it's relying on the MAC to generate them
+link changes do not cause dhcp to renew
 
 leap seconds:
 nav-leap ublox msg?
@@ -139,8 +140,8 @@ Ethernet header: 14 bytes
 IP header: 20 bytes
 UDP header: 8 bytes
 NTP: 48 bytes
-Ethernet CRC: 4 bytes
-- driver timestamp reference-ish
+- driver timestamp reference-ish + interrupt latency
+Ethernet CRC (FCS): 4 bytes
 Ethernet IPG: 12 bytes
 
 114*8
@@ -158,7 +159,23 @@ changing timestamp location based on packet size:
 =5ns (~ +/- 3ns)
 
 94*8
-752 bits excluding preamble, SFD, IPG
+tx: 752 bits excluding preamble, SFD, IPG
 752/100000000
 .000007520
-2x=15040
+
+rx: 8 bytes
+8*8/100000000
+.000000640
+
+chrony is adjusting hardware RX timestamps
+- process_hw_timestamp
+rx_correction = l2_length / (1.0e6 / 8 * iface->link_speed);
+=.000000752
+this lowers the rtt!
+
+possible reasons things are below the rtt latency limit:
+- rx_comp/tx_comp set = no
+- clock running fast = it is (verify compare total rtt vs computed rtt = normal)
+- timestamps aren't where I expect them to be (yes, chrony adjusts rx timestamp)
+- i211 datasheet does mention TX/RX timestamp asymmetry. if TX timestamp is late compared to RX, that would reduce the rtt
+
