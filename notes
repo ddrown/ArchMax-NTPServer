@@ -179,3 +179,9 @@ possible reasons things are below the rtt latency limit:
 - timestamps aren't where I expect them to be (yes, chrony adjusts rx timestamp)
 - i211 datasheet does mention TX/RX timestamp asymmetry. if TX timestamp is late compared to RX, that would reduce the rtt
 
+TX latency around 14.1 us
+RX latency around 21.5 us
+
+max TX rate around 29kpps
+1/0.0000356
+28089
