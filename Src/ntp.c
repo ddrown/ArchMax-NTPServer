@@ -45,6 +45,8 @@ static struct timestamp end_ntp = {.seconds = 0, .subseconds = 0};
 static struct timestamp last_tx = {.seconds = 0, .subseconds = 0}; 
 
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struct ip_addr *addr, u16_t port) {
+  struct timestamp rx_done;
+  ptp_timestamp(&rx_done);
   ethernetif_scan_tx_timestamps(); // check for TX timestamps
 
   if(p->tot_len < sizeof(struct ntp_packet)) {
@@ -125,6 +127,8 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
   write_uart_u(last_tx.seconds);
   write_uart_s(" ");
   write_uart_u(last_tx.subseconds);
+  write_uart_s(" ");
+  write_uart_u(ptp_ns_diff(&end_ntp, &rx_done));
   write_uart_s(" ");
   if(last_tx.seconds != 0) {
     write_uart_u(ptp_ns_diff(&start_ntp, &last_tx));

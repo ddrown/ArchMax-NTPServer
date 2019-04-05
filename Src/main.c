@@ -131,7 +131,7 @@ int main(void)
       cmdline_addchr(uart_rx_data());
     }
     MX_LWIP_Process();
-    if(HAL_GetTick() - last_ntp > 1000) {
+    if(HAL_GetTick() - last_ntp > 999) {
       last_ntp = HAL_GetTick();
       ntp_poll();
     }
