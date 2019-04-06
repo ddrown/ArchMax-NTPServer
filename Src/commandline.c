@@ -5,6 +5,7 @@
 #include "ptp.h"
 #include "ping.h"
 #include "ntp.h"
+#include "adc.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -24,6 +25,7 @@ static void print_help() {
   "freqdiv [32bit] - change subsecond freq div\n"
   "sec [32bit] - change seconds\n"
   "subs [32bit] - change sub seconds\n"
+  "adc - display internal temp and voltage\n"
   "help - print help\n"
   );
 }
@@ -125,6 +127,9 @@ static void run_command(char *cmdline) {
   } else if(strncmp("subs ", cmdline, 5) == 0) {
     int32_t subs = atol(cmdline+5);
     ptp_update_subs(subs);
+  } else if(strcmp("adc", cmdline) == 0) {
+    print_last_vcc();
+    print_last_temp();
   } else {
     print_help();
   }

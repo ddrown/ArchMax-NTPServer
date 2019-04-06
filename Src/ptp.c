@@ -160,7 +160,7 @@ void ptp_timestamp(struct timestamp *now) {
 #define SUBSECONDS_PER_SECOND 2147483648
 
 // limited to around 18 seconds
-uint64_t ptp_ns_diff(struct timestamp *start, struct timestamp *end) {
+uint64_t ptp_ns_diff(const struct timestamp *start, const struct timestamp *end) {
   uint64_t ns = 0;
 
   // TODO: counter wraps

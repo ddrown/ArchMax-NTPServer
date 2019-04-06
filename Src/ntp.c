@@ -3,6 +3,7 @@
 #include "uart.h"
 #include "ptp.h"
 #include "ethernetif.h"
+#include "adc.h"
 
 #include "lwip/udp.h"
 #include <string.h>
@@ -45,8 +46,6 @@ static struct timestamp end_ntp = {.seconds = 0, .subseconds = 0};
 static struct timestamp last_tx = {.seconds = 0, .subseconds = 0}; 
 
 static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struct ip_addr *addr, u16_t port) {
-  struct timestamp rx_done;
-  ptp_timestamp(&rx_done);
   ethernetif_scan_tx_timestamps(); // check for TX timestamps
 
   if(p->tot_len < sizeof(struct ntp_packet)) {
@@ -92,7 +91,7 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
   // T  rtt   rxs        rxsub     txs        txsub      ends       endsub     offs  offsub     Ts         Tsub      T-start
   // I 354365 3762733097 431815355 3762733093 3366342847 3762467989 231917178 265107 2132235141 3762467989 231186357 14050
   write_uart_s(type);
-  write_uart_u(ptp_ns_diff(&start_ntp, &end_ntp));
+  write_uart_u(ptp_ns_diff(&start_ntp, &end_ntp)); // RTT
   write_uart_s(" ");
 
   write_uart_u(ntohl(response->rx_s));
@@ -128,7 +127,7 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
   write_uart_s(" ");
   write_uart_u(last_tx.subseconds);
   write_uart_s(" ");
-  write_uart_u(ptp_ns_diff(&end_ntp, &rx_done));
+  write_uart_i(last_temp());
   write_uart_s(" ");
   if(last_tx.seconds != 0) {
     write_uart_u(ptp_ns_diff(&start_ntp, &last_tx));
@@ -196,5 +195,5 @@ void ntp_poll_set(uint8_t active) {
 void ntp_init() {
   ntp_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
   udp_recv(ntp_pcb, ntp_recv, NULL);
-  udp_bind(ntp_pcb, IP_ANY_TYPE, 123);
+  udp_bind(ntp_pcb, IP_ANY_TYPE, 1123);
 }
