@@ -58,6 +58,14 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define SD_CS_Pin GPIO_PIN_2
+#define SD_CS_GPIO_Port GPIOE
+#define HEADER_CS_Pin GPIO_PIN_3
+#define HEADER_CS_GPIO_Port GPIOE
+#define TEMPSENS_ADC_Pin GPIO_PIN_4
+#define TEMPSENS_ADC_GPIO_Port GPIOA
+#define TEMPSENS_TIM_Pin GPIO_PIN_5
+#define TEMPSENS_TIM_GPIO_Port GPIOA
 #define LED_Pin GPIO_PIN_3
 #define LED_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */

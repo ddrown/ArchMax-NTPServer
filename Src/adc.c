@@ -25,27 +25,6 @@ static uint16_t *ts_cal1 = TEMPSENSOR_CAL1_ADDR;
 static uint16_t *ts_cal2 = TEMPSENSOR_CAL2_ADDR;
 static uint16_t *vrefint_cal = VREFINT_CAL_ADDR;
 
-void adc_injected_config() {
-  ADC_InjectionConfTypeDef config;
-
-  config.InjectedChannel = ADC_CHANNEL_TEMPSENSOR;
-  config.InjectedRank = ADC_INJECTED_RANK_1;
-  config.InjectedSamplingTime = ADC_SAMPLETIME_480CYCLES;
-  config.ExternalTrigInjecConv = ADC_INJECTED_SOFTWARE_START;
-  config.ExternalTrigInjecConvEdge = ADC_EXTERNALTRIGINJECCONVEDGE_NONE;
-  config.InjectedNbrOfConversion = 2;
-  config.AutoInjectedConv = DISABLE;
-  config.InjectedDiscontinuousConvMode = DISABLE;
-  config.InjectedOffset = 0;
-  HAL_ADCEx_InjectedConfigChannel(&hadc1, &config);
-
-  config.InjectedChannel = ADC_CHANNEL_VREFINT;
-  config.InjectedRank = ADC_INJECTED_RANK_2;
-  HAL_ADCEx_InjectedConfigChannel(&hadc1, &config);
-
-  HAL_ADCEx_InjectedStart(&hadc1);
-}
-
 static uint16_t avg_16(uint16_t *values, uint8_t index) {
   uint32_t sum = 0;
   for(uint8_t i = 0; i <= index; i++) {
