@@ -161,6 +161,10 @@ int main(void)
           adc_poll();
           update_adc();
           break;
+
+        case 901:
+          print_adc();
+          break;
       }
     }
   }

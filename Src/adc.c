@@ -13,17 +13,23 @@
 
 static uint16_t internal_temps[AVERAGE_SAMPLES_ADC];
 static uint16_t internal_vrefs[AVERAGE_SAMPLES_ADC];
+static uint16_t external_temps[AVERAGE_SAMPLES_ADC];
 static int8_t adc_index = -1;
 
 #define AVERAGE_SAMPLES_CALC 60
 
 static int32_t temps[AVERAGE_SAMPLES_CALC];
+static int32_t ext_temps[AVERAGE_SAMPLES_CALC];
 static uint64_t vccs[AVERAGE_SAMPLES_CALC];
 static int8_t calc_index = -1;
 
 static uint16_t *ts_cal1 = TEMPSENSOR_CAL1_ADDR;
 static uint16_t *ts_cal2 = TEMPSENSOR_CAL2_ADDR;
 static uint16_t *vrefint_cal = VREFINT_CAL_ADDR;
+
+static int32_t last_temp_mF = 0;
+static uint64_t last_vcc_nv = 0;
+static int32_t last_ext_temp = 0;
 
 static uint16_t avg_16(uint16_t *values, uint8_t index) {
   uint32_t sum = 0;
@@ -49,6 +55,18 @@ static int32_t avg_i(int32_t *values, uint8_t index) {
   return sum / (index + 1);
 }
 
+void print_adc() {
+  struct timestamp now;
+  ptp_timestamp(&now);
+  write_uart_u(now.seconds);
+  write_uart_s(" ");
+  write_uart_u(last_temp_mF);
+  write_uart_s(" ");
+  write_uart_u(last_vcc_nv/1000000);
+  write_uart_s(" ");
+  write_uart_u(last_ext_temp);
+  write_uart_s("\n");
+}
 
 void adc_poll() {
   if(adc_index < (AVERAGE_SAMPLES_ADC-1)) {
@@ -57,17 +75,16 @@ void adc_poll() {
     for(uint8_t i = 0; i < (AVERAGE_SAMPLES_ADC-1); i++) {
       internal_temps[i] = internal_temps[i+1];
       internal_vrefs[i] = internal_vrefs[i+1];
+      external_temps[i] = external_temps[i+1];
     }
   }
 
   internal_temps[adc_index] = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1);
   internal_vrefs[adc_index] = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2);
+  external_temps[adc_index] = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_3);
   
   HAL_ADCEx_InjectedStart(&hadc1);
 }
-
-static int32_t last_temp_mF = 0;
-static uint64_t last_vcc_nv = 0;
 
 void print_last_temp() {
   write_uart_s("temp ");
@@ -88,6 +105,7 @@ void print_last_vcc() {
 void update_adc() {
   uint16_t temp = avg_16(internal_temps, adc_index);
   uint16_t vref = avg_16(internal_vrefs, adc_index);
+  uint16_t ext_temp = avg_16(external_temps, adc_index);
 
   if(calc_index < (AVERAGE_SAMPLES_CALC-1)) {
     calc_index++;
@@ -95,6 +113,7 @@ void update_adc() {
     for(uint8_t i = 0; i < (AVERAGE_SAMPLES_CALC-1); i++) {
       temps[i] = temps[i+1];
       vccs[i] = vccs[i+1];
+      ext_temps[i] = ext_temps[i+1];
     }
   }
 
@@ -116,4 +135,8 @@ void update_adc() {
   int32_t temp_mF = temp_mC * 9/5+32000;
   temps[calc_index] = temp_mF;
   last_temp_mF = avg_i(temps, calc_index);
+
+  uint32_t ext_temp_nv = ext_temp * nv_per_count;
+  ext_temps[calc_index] = ext_temp_nv / 1000;
+  last_ext_temp = avg_i(ext_temps, calc_index);
 }
