@@ -6,6 +6,41 @@
 #include "uart.h"
 #include "int64.h"
 
+uint8_t reset = 0xF0;
+uint8_t rxuart1[8];
+
+void uart_alt_start() {
+  if(HAL_UART_Receive_DMA(&huart1, rxuart1, 8) != HAL_OK) {
+    write_uart_s("R\n");
+  }
+  if(HAL_UART_Transmit_DMA(&huart1, &reset, 1) != HAL_OK) {
+    write_uart_s("T\n");
+  }
+}
+
+void print_uart() {
+  for(uint8_t i = 0; i < sizeof(rxuart1); i++) {
+    write_uart_u(rxuart1[i]);
+    write_uart_s(" ");
+    rxuart1[i] = 0;
+  }
+  write_uart_s("\n");
+  // pretend an interrupt happened to update state
+  HAL_UART_IRQHandler(&huart1);
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+  if(huart == &huart1) {
+    HAL_UART_Transmit_DMA(&huart1, &reset, 1);
+  }
+}
+
+void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart) {
+  if(huart == &huart1) {
+    write_uart_s("e1\n");
+  }
+}
+
 void write_uart_ch(char ch) {
   HAL_UART_Transmit(&UART_NAME, (uint8_t *)&ch, 1, 500);
 }
@@ -54,14 +89,18 @@ char uartBuffer[10];
 uint8_t start = 0, end = 0, overrun = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-  uint8_t newEnd = (end + 1) % sizeof(uartBuffer);
-  if(newEnd == start) { // no space left in uartBuffer
-    overrun = 1;
-  } else {
-    end = newEnd;
-    uartBuffer[end] = uartData;
+  if(huart == &UART_NAME) {
+    uint8_t newEnd = (end + 1) % sizeof(uartBuffer);
+    if(newEnd == start) { // no space left in uartBuffer
+      overrun = 1;
+    } else {
+      end = newEnd;
+      uartBuffer[end] = uartData;
+    }
+    HAL_UART_Receive_IT(huart, &uartData, 1); // TODO: is there a race condition here?
+  } else if(huart == &huart1) {
+    HAL_UART_Receive_DMA(&huart1, rxuart1, 1);
   }
-  HAL_UART_Receive_IT(huart, &uartData, 1); // TODO: is there a race condition here?
 }
 
 void start_rx_uart() {
