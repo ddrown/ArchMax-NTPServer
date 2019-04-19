@@ -16,7 +16,7 @@ static uint16_t internal_vrefs[AVERAGE_SAMPLES_ADC];
 static uint16_t external_temps[AVERAGE_SAMPLES_ADC];
 static int8_t adc_index = -1;
 
-#define AVERAGE_SAMPLES_CALC 60
+#define AVERAGE_SAMPLES_CALC 10
 
 static int32_t temps[AVERAGE_SAMPLES_CALC];
 static int32_t ext_temps[AVERAGE_SAMPLES_CALC];
@@ -64,7 +64,11 @@ void print_adc() {
   write_uart_s(" ");
   write_uart_u(last_vcc_nv/1000000);
   write_uart_s(" ");
-  write_uart_u(last_ext_temp);
+  write_uart_u(internal_vrefs[adc_index]);
+  write_uart_s(" ");
+  write_uart_u(external_temps[adc_index]);
+  write_uart_s(" ");
+  write_uart_u(last_ext_temp/1000);
   write_uart_s("\n");
 }
 

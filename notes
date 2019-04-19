@@ -185,3 +185,56 @@ RX latency around 21.5 us
 max TX rate around 29kpps
 1/0.0000356
 28089
+
+
+400mV in 3850 ohms
+=.000103 A
+
+regulator is cjt1117-3.3
+spec min is 3.267V / 3.235V
+100%: 3.319V
+5%: 3.318V
+4%: 3.223V -- out of spec
+3%: 3.212V -- out of spec
+<apuls> 1.15V drop. Minimun input voltage must >4.45 V. Cable selfmade or consumer ? Maybe you have some voltage drop through the cable.  the voltage drop of the regulator could increase up to 1.25V if the output current is ~1A
+min input@low: 4.45V
+min input@1A: 4.55V
+
+current = 0.19A
+at computer = 5.04V
+at board = 4.85V
+around 1ohm?
+switched cables, now 4.92V at board
+removed USB sensor, now 4.94V
+~0.5 ohm cable
+
+5.04 - 4.45
+=.59
+
+adc   multimeter
+1.518 1.503
+1.519 1.480
+1.515 1.494
+1.512 1.516
+1.511 1.508
+
+adc   multimeter
+3.318 3.301
+3.317 3.302
+
+adc   multimeter
+2.351 2.473
+0.790 0.751
+0.784 0.750
+0.836 0.814
+
+
+when the TMP36 is connected, voltage falls to 0.1V from 0.7V - too much current?
+ - test current from meter
+
+
+TMP36 resistor = 5.55k
+top 5V = 5.53k
+bottom 5V = 5.55k
+
+try using 2k dividers?

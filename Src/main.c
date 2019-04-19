@@ -277,6 +277,7 @@ static void MX_ADC1_Init(void)
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time. 
   */
   sConfig.Channel = ADC_CHANNEL_0;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
   sConfig.Rank = 3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -308,20 +309,13 @@ static void MX_ADC1_Init(void)
   /** Configures for the selected ADC injected channel its corresponding rank in the sequencer and its sample time 
   */
   sConfigInjected.InjectedChannel = ADC_CHANNEL_0;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_3CYCLES;
   sConfigInjected.InjectedRank = 3;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
   }
   /* USER CODE BEGIN ADC1_Init 2 */
-  sConfig.Channel = ADC_CHANNEL_VREFINT;
-  sConfig.Rank = 2;
-  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-
   /* USER CODE END ADC1_Init 2 */
 
 }
