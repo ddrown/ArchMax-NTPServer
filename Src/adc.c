@@ -31,32 +31,40 @@ static int32_t last_temp_mF = 0;
 static uint64_t last_vcc_nv = 0;
 static int32_t last_ext_temp = 0;
 
-static uint16_t avg_16(uint16_t *values, uint8_t index) {
+#define ADC_CHANNELS 5
+static volatile uint16_t adc_buffer[ADC_CHANNELS];
+
+void adc_init() {
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS);
+}
+
+static uint16_t avg_16(uint16_t *values, uint8_t length) {
   uint32_t sum = 0;
-  for(uint8_t i = 0; i <= index; i++) {
+  for(uint8_t i = 0; i < length; i++) {
     sum += values[i];
   }
-  return sum / (index+1);
+  return sum / length;
 }
 
-static uint64_t avg_64(uint64_t *values, uint8_t index) {
+static uint64_t avg_64(uint64_t *values, uint8_t length) {
   uint64_t sum = 0;
-  for(uint8_t i = 0; i <= index; i++) {
+  for(uint8_t i = 0; i < length; i++) {
     sum += values[i];
   }
-  return sum / (index + 1);
+  return sum / length;
 }
 
-static int32_t avg_i(int32_t *values, uint8_t index) {
+static int32_t avg_i(int32_t *values, uint8_t length) {
   int64_t sum = 0;
-  for(uint8_t i = 0; i <= index; i++) {
+  for(uint8_t i = 0; i < length; i++) {
     sum += values[i];
   }
-  return sum / (index + 1);
+  return sum / length;
 }
 
 void print_adc() {
   struct timestamp now;
+
   ptp_timestamp(&now);
   write_uart_u(now.seconds);
   write_uart_s(" ");
@@ -73,21 +81,19 @@ void print_adc() {
 }
 
 void adc_poll() {
-  if(adc_index < (AVERAGE_SAMPLES_ADC-1)) {
+  if(adc_index == -1) {
     adc_index++;
-  } else {
-    for(uint8_t i = 0; i < (AVERAGE_SAMPLES_ADC-1); i++) {
-      internal_temps[i] = internal_temps[i+1];
-      internal_vrefs[i] = internal_vrefs[i+1];
-      external_temps[i] = external_temps[i+1];
+    for(uint8_t i = 0; i < AVERAGE_SAMPLES_ADC; i++) {
+      internal_temps[i] = adc_buffer[0];
+      internal_vrefs[i] = adc_buffer[1];
+      external_temps[i] = adc_buffer[2];
     }
+  } else {
+    adc_index = (adc_index + 1) % AVERAGE_SAMPLES_ADC;
+    internal_temps[adc_index] = adc_buffer[0];
+    internal_vrefs[adc_index] = adc_buffer[1];
+    external_temps[adc_index] = adc_buffer[2];
   }
-
-  internal_temps[adc_index] = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_1);
-  internal_vrefs[adc_index] = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_2);
-  external_temps[adc_index] = HAL_ADCEx_InjectedGetValue(&hadc1, ADC_INJECTED_RANK_3);
-  
-  HAL_ADCEx_InjectedStart(&hadc1);
 }
 
 void print_last_temp() {
@@ -107,26 +113,30 @@ void print_last_vcc() {
 }
 
 void update_adc() {
-  uint16_t temp = avg_16(internal_temps, adc_index);
-  uint16_t vref = avg_16(internal_vrefs, adc_index);
-  uint16_t ext_temp = avg_16(external_temps, adc_index);
+  uint8_t set_all = 0;
+  uint16_t temp = avg_16(internal_temps, AVERAGE_SAMPLES_ADC);
+  uint16_t vref = avg_16(internal_vrefs, AVERAGE_SAMPLES_ADC);
+  uint16_t ext_temp = avg_16(external_temps, AVERAGE_SAMPLES_ADC);
 
-  if(calc_index < (AVERAGE_SAMPLES_CALC-1)) {
+  if(calc_index == -1) {
     calc_index++;
+    set_all = 1;
   } else {
-    for(uint8_t i = 0; i < (AVERAGE_SAMPLES_CALC-1); i++) {
-      temps[i] = temps[i+1];
-      vccs[i] = vccs[i+1];
-      ext_temps[i] = ext_temps[i+1];
-    }
+    calc_index = (calc_index + 1) % AVERAGE_SAMPLES_CALC;
   }
 
   uint32_t vref_expected_nv = (*vrefint_cal) * NV_PER_COUNT;
   uint32_t vref_actual_nv = vref*NV_PER_COUNT;
   uint64_t vcc_nv = (uint64_t)((vref_expected_nv+500)/1000)*VREFINT_CAL_VREF*NV_PER_MV/((vref_actual_nv+500)/1000);
 
-  vccs[calc_index] = vcc_nv;
-  last_vcc_nv = avg_64(vccs, calc_index);
+  if(set_all) {
+    for(uint8_t i = 0; i < AVERAGE_SAMPLES_CALC; i++) {
+      vccs[i] = vcc_nv;
+    }
+  } else {
+    vccs[calc_index] = vcc_nv;
+  }
+  last_vcc_nv = avg_64(vccs, AVERAGE_SAMPLES_CALC);
 
   uint32_t nv_per_count = last_vcc_nv / 4096;
 
@@ -137,10 +147,22 @@ void update_adc() {
   int32_t uv_per_C = (((int32_t)nv_110C - (int32_t)nv_30C) / (TEMPSENSOR_CAL2_TEMP-TEMPSENSOR_CAL1_TEMP) + 500)/1000;
   int32_t temp_mC = ((int32_t)temp_nv - (int32_t)nv_30C) / uv_per_C + 30000;
   int32_t temp_mF = temp_mC * 9/5+32000;
-  temps[calc_index] = temp_mF;
-  last_temp_mF = avg_i(temps, calc_index);
+  if(set_all) {
+    for(uint8_t i = 0; i < AVERAGE_SAMPLES_CALC; i++) {
+      temps[i] = temp_mF;
+    }
+  } else {
+    temps[calc_index] = temp_mF;
+  }
+  last_temp_mF = avg_i(temps, AVERAGE_SAMPLES_CALC);
 
-  uint32_t ext_temp_nv = ext_temp * nv_per_count;
-  ext_temps[calc_index] = ext_temp_nv / 1000;
-  last_ext_temp = avg_i(ext_temps, calc_index);
+  uint32_t ext_temp_uv = (ext_temp * nv_per_count) / 1000;
+  if(set_all) {
+    for(uint8_t i = 0; i < AVERAGE_SAMPLES_CALC; i++) {
+      ext_temps[i] = ext_temp_uv;
+    }
+  } else {
+    ext_temps[calc_index] = ext_temp_uv;
+  }
+  last_ext_temp = avg_i(ext_temps, AVERAGE_SAMPLES_CALC);
 }

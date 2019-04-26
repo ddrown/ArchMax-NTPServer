@@ -127,10 +127,14 @@ int main(void)
   MX_UART5_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  HAL_ADCEx_InjectedStart(&hadc1);
+  uint32_t start = HAL_GetTick();
+  HAL_TIM_Base_Start(&htim3);
+  adc_init();
   ptp_init();
   ping_init();
   ntp_init();
+  while(HAL_GetTick() - start < 200) { // allow the adc to start
+  }
   write_uart_s("init done\n");
   cmdline_prompt();
   /* USER CODE END 2 */
@@ -459,7 +463,7 @@ static void MX_TIM3_Init(void)
   htim3.Instance = TIM3;
   htim3.Init.Prescaler = 41999;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 399;
+  htim3.Init.Period = 199;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK)

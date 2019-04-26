@@ -8,5 +8,6 @@ void print_last_vcc();
 void print_last_temp();
 int32_t last_temp();
 void print_adc();
+void adc_init();
 
 #endif
