@@ -6,6 +6,7 @@
 #include "ping.h"
 #include "ntp.h"
 #include "adc.h"
+#include "bme280.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -26,6 +27,11 @@ static void print_help() {
   "sec [32bit] - change seconds\n"
   "subs [32bit] - change sub seconds\n"
   "adc - display internal temp and voltage\n"
+  "b-id - display bme280 id\n"
+  "b-show - show bme280 status\n"
+  "b-raw - show bme280 raw adc\n"
+  "b-cal - show bme280 calibration data\n"
+  "b-temp - show bme280 temp/pressure/rh\n"
   "help - print help\n"
   );
 }
@@ -130,6 +136,22 @@ static void run_command(char *cmdline) {
   } else if(strcmp("adc", cmdline) == 0) {
     print_last_vcc();
     print_last_temp();
+  } else if(strcmp("b-id", cmdline) == 0) {
+    uint8_t id = bme280_getid();
+    write_uart_u(id);
+    write_uart_s("\n");
+  } else if(strcmp("b-show", cmdline) == 0) {
+    bme280_show();
+  } else if(strcmp("b-raw", cmdline) == 0) {
+    bme280_raw();
+  } else if(strcmp("b-cal", cmdline) == 0) {
+    bme280_printcal();
+  } else if(strcmp("b-temp", cmdline) == 0) {
+    struct bme280_calibration_data c;
+    bme280_read_calibration(&c);
+    bme280_force_mode();
+    HAL_Delay(20);
+    bme280_print(&c);
   } else {
     print_help();
   }
