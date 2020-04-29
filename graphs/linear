@@ -1,0 +1,111 @@
+#!/usr/bin/perl
+
+use strict;
+
+sub simple_linear_regression {
+  my($points_x, $points_y, $avg_x, $avg_y) = @_;
+
+  my($num,$denom);
+  for(my $i = 0; $i < scalar(@$points_x); $i++) {
+    $num += ($points_x->[$i] - $avg_x)*($points_y->[$i] - $avg_y);
+    $denom += ($points_x->[$i] - $avg_x) ** 2;
+  }
+
+  if($denom == 0) {
+    $denom = 1;
+  }
+  my $simp_a = $num / $denom;
+  my $simp_b = $avg_y - $simp_a * $avg_x;
+  return ($simp_a, $simp_b);
+}
+
+sub average {
+  my($points) = @_;
+
+  if(scalar(@$points) == 0) {
+    return 0;
+  }
+
+  my($sum);
+  map { $sum += $_ } @$points;
+  return $sum / scalar(@$points);
+}
+
+sub chisq {
+  my($points_x, $points_y, $a, $b) = @_;
+
+  my($chisq);
+  for(my $i = 0; $i < scalar(@$points_x); $i++) {
+    $chisq += ($points_y->[$i] - $points_x->[$i]*$a - $b) ** 2;
+  }
+  return $chisq;
+}
+
+sub inversions {
+  my($points_x, $points_y, $a, $b) = @_;
+
+  my($last, $flips);
+  $flips = 0;
+  for(my $i = 0; $i < scalar(@$points_x); $i++) {
+    my $this = $points_y->[$i] - $points_x->[$i]*$a - $b;
+    if(defined($last)) {
+      if($last < 0 and $this >= 0) {
+        $flips++;
+      } elsif($last >= 0 and $this < 0) {
+        $flips++;
+      }
+    }
+    $last = $this;
+  }
+
+  return($flips);
+}
+
+sub percentiles_after_adjust {
+  my($points_x, $points_y, $lin_a, $lin_b) = @_;
+
+  my(@points);
+  my $thirds = scalar(@$points_x)/3;
+  my(@stages) = ([], [], []);
+  for(my $i = 0; $i < scalar(@$points_x); $i++) {
+    my $difference = $points_y->[$i] - $points_x->[$i]*$lin_a - $lin_b;
+    push(@points, $difference);
+    push(@{ $stages[int($i/$thirds)] }, $difference);
+  }
+  @points = sort { $a <=> $b } @points;
+
+  my $m25 = $points[int(scalar(@points)*0.25)] * 1000000;
+  my $m50 = $points[int(scalar(@points)*0.50)] * 1000000;
+  my $m75 = $points[int(scalar(@points)*0.75)] * 1000000;
+
+  return ($m25, $m50, $m75);
+}
+
+my(@x,@y,@temps);
+while(<>) {
+  chomp($_);
+  my(@a) = split(/ /);
+  my $temp = $a[5];
+  push(@x, $a[0]);
+  push(@y, $a[2]);
+  if(@x == 64) {
+    my $avg_x = average(\@x);
+    my $avg_y = average(\@y);
+    my ($lin_a,$lin_b) = simple_linear_regression(\@x, \@y, $avg_x, $avg_y);
+    my($inversions) = inversions(\@x, \@y, $lin_a, $lin_b);
+    my($chi) = chisq(\@x, \@y, $lin_a, $lin_b);
+    my($m25, $m50, $m75) = percentiles_after_adjust(\@x, \@y, $lin_a, $lin_b);
+
+    my $timespan = $x[-1] - $x[0];
+    my $esterror = abs($m75)+abs($m25);
+    if($timespan > 0) {
+      $esterror = $esterror / $timespan;
+    }
+
+    # ts timespan pts lin-ppm lin-offset chisq lin-inversions 25p 50p 75p esterror-ppm temperature
+    printf("%d %d %d %.9f %.3f %.9f %d %.3f/%.3f/%.3f %.3f %.3f\n", $x[-1], $timespan, scalar(@x), $lin_a, $lin_b, $chi*1e6, $inversions, $m25, $m50, $m75, $esterror, $temp);
+
+    splice(@x, 0, 16);
+    splice(@y, 0, 16);
+  }
+}

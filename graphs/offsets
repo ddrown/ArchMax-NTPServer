@@ -1,0 +1,30 @@
+#!/usr/bin/perl
+
+use strict;
+
+# > 419853,3762470582,671663492,3762470582,672732366,3762470582,264325130
+# offset 0,144082106
+# 385638,3762470583,680996629,3762470583,682228758,3762470583,269113578
+# offset 0,144001602
+
+my $lastline;
+while(<>) {
+  s/^> //;
+  chomp($_);
+  if(/^offset ([\d-]+),([\d-]+)/) {
+    my($offset,$offsetsub) = ($1,$2);
+    my($rtt,$rx,$rxsub,$tx,$txsub,$local,$localsub) = split(/,/,$lastline);
+    my $proc = $tx - $rx;
+    my $procsub = $txsub - $rxsub;
+    if($procsub < 0) {
+      $procsub += 2**32;
+      $proc -= 1;
+    }
+    my $proct = $proc + $procsub/2**32;
+    $rtt = $rtt/1000000000 - $proct;
+    my $offsett = $offset + $offsetsub/2**32;
+    printf("%d %.9f %.9f %.9f\n", $rx - 2208988800, $rtt, $offsett, $proct);
+  } else {
+    $lastline = $_;
+  }
+}

@@ -1,0 +1,45 @@
+#!/bin/sh
+
+RUN=6
+START=1554839443
+END=1554844243
+
+awk '($1 > '${START}' && $1 < '${END}') { print }' <offsets${RUN}.log >offsets${RUN}-zoom.log
+./linear <offsets${RUN}-zoom.log >linear${RUN}-zoom.log
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp${RUN}-zoom.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set y2tics format "%1.1f ppm" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'offsets${RUN}-zoom.log' using 1:6 title 'temp' with line, \\
+    'linear${RUN}-zoom.log' using 1:11 title 'avg temp' with line, \\
+    'linear${RUN}-zoom.log' using 1:(\$4*-1000000) title 'freq' with line axes x1y2
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set output "linear-temp${RUN}-zoom.png"
+set grid
+set xlabel "Temperature"
+set format x "%1.1f F"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "Linear best fit over 64s vs Temperature"
+set key top right box
+plot \\
+    'linear${RUN}-zoom.log' using 10:(\$4*1000000) title 'ppm' with linespoints, \\
+    'linear${RUN}-zoom.log' using 11:(\$4*1000000) title 'avgd' with linespoints
+EOF
+

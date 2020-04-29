@@ -1,0 +1,34 @@
+#!/usr/bin/perl
+
+use strict;
+
+#  M rtt    rx         rx_s      tx         tx_s      local      local_s   o o_s
+#> I 712405 3762565889 582432965 3762565832 351090437 3762565889 291571710 0 1174651
+#  I 659605 3762565890 591663277 3762565889 585369754 3762565890 296068256 0 1179875
+
+my(@fields) = qw(mode rtt rx rxsub tx txsub local localsub offset offsetsub);
+my(%last_r);
+while(<>) {
+  s/^> //;
+  chomp($_);
+  if(/^([IB?]) \d+ \d+/) {
+    my(@r) = split(/ /);
+    my $i = 0;
+    my(%this_r) = map { $fields[$i++] => $_ } @r;
+
+    if(%last_r and $this_r{mode} eq "I") {
+      my $proc = $this_r{tx} - $last_r{rx};
+      my $procsub = $this_r{txsub} - $last_r{rxsub};
+      if($procsub < 0) {
+        $procsub += 2**32;
+        $proc -= 1;
+      }
+      my $proct = $proc + $procsub/2**32;
+      my $rtt = $last_r{rtt}/1000000000 - $proct;
+      my $offsett = $last_r{offset} + $last_r{offsetsub}/2**31;
+      printf("%d %.9f %.9f %.9f\n", $last_r{rx} - 2208988800, $rtt, $offsett, $proct);
+    }
+
+    %last_r = %this_r;
+  }
+}

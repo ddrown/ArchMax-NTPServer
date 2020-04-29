@@ -1,0 +1,151 @@
+#!/bin/sh
+
+#./offsets <f4.log >offsets.log
+#awk '($1 > 1553486400 && $1 < 1553518800) { print }' <offsets.log >offsets-zoom.log
+#awk '($1 > 1553486400 && $1 < 1553487000) { print }' <offsets.log >offsets-zoom2.log
+#awk '($1 > 1553486400 && $1 < 1553486700) { print }' <offsets.log >offsets-zoom3.log
+#awk '($1 > 1553486400 && $1 < 1553490000) { print }' <offsets.log >offsets-zoom4.log
+./jitter <offsets.log >jitter.log
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset-5m.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f ms" nomirror
+set title "offset of remote clock (5m) - 106.990ppm"
+set key bottom right box
+plot \\
+    'offsets-zoom3.log' using 1:(\$3*1000+0.106990*(\$1-1553486401)) title 'response' with line, \
+    'offsets-zoom3.log' using 1:(\$3*1000+0.106990*(\$1-1553486401)+\$2*1000) title 'request' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset-10m.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f ms" nomirror
+set title "offset of remote clock (10m) - 106.990ppm"
+set key bottom right box
+plot \\
+    'offsets-zoom2.log' using 1:(\$3*1000+0.106990*(\$1-1553486401)) title 'response' with line, \
+    'offsets-zoom2.log' using 1:(\$3*1000+0.106990*(\$1-1553486401)+\$2*1000) title 'request' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset-1h.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f ms" nomirror
+set title "offset of remote clock (1h) - 106.990ppm"
+set key bottom right box
+plot \\
+    'offsets-zoom4.log' using 1:(\$3*1000+0.106990*(\$1-1553486401)) title 'response' with line, \
+    'offsets-zoom4.log' using 1:(\$3*1000+0.106990*(\$1-1553486401)+\$2*1000) title 'request' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset-9h.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f ms" nomirror
+set title "offset of remote clock (9h) - 106.270ppm"
+set key bottom right box
+plot \\
+    'offsets-zoom.log' using 1:(\$3*1000+0.106270*(\$1-1553486401)) title 'response' with line, \
+    'offsets-zoom.log' using 1:(\$3*1000+0.106270*(\$1-1553486401)+\$2*1000) title 'request' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f ms" nomirror
+set title "offset of remote clock (24h) - 108.323ppm"
+set key bottom right box
+plot \\
+    'offsets.log' using 1:(\$3*1000+0.108323*(\$1-1553481782)) title 'response' with line, \
+    'offsets.log' using 1:(\$3*1000+0.108323*(\$1-1553481782)+\$2*1000) title 'request' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "rtt.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f us" nomirror
+set title "rtt of remote clock"
+set key top left box
+plot \\
+    'offsets-zoom.log' using 1:(\$2*1000000) title 'ntp server' with line, \
+    65 title '65us' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "proc.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f us" nomirror
+set title "proctime of remote clock"
+set key top right box
+plot \\
+    'offsets-zoom.log' using 1:(\$4*1000000) title 'ntp server' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "jitter.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f us" nomirror
+set title "offset change from previous second"
+set key bottom right box
+plot \\
+    'jitter.log' using 1:(\$3*1000000) title 'jitter' with line
+EOF
+

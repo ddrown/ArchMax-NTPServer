@@ -1,0 +1,170 @@
+#!/bin/sh
+
+RUN=5
+START=1554055157
+
+./offsets3 <run${RUN}.log >offsets${RUN}.log
+#awk '($1 > ${START} && $1 < 1553917712) { print }' <offsets${RUN}.log >offsets${RUN}-zoom.log
+#awk '($1 > ${START} && $1 < 1553918312) { print }' <offsets${RUN}.log >offsets${RUN}-zoom2.log
+#awk '($1 > ${START} && $1 < 1553921012) { print }' <offsets${RUN}.log >offsets${RUN}-zoom3.log
+./jitter3 <offsets${RUN}.log >jitter${RUN}.log
+#awk '($1+171164 < systime()) { print }' <offsets3.log >offsets3-join.log
+
+#cat <<EOF | gnuplot
+#set terminal png size 900,600
+#set xdata time
+#set timefmt "%s"
+#set output "offset${RUN}-5m.png"
+#set grid
+#set xlabel "Time"
+#set format x "%d-%H:%M"
+#set xtic rotate by -45 scale 0
+#set ylabel ""
+#set ytics format "%1.3f ms" nomirror
+#set title "offset of remote clock (5m) + 11.777ppm"
+#set key bottom right box
+#plot \\
+#    'offsets${RUN}-zoom.log' using 1:(\$3*1000+0.011777*(\$1-${START})) title 'request' with line, \
+#    'offsets${RUN}-zoom.log' using 1:(\$3*1000+0.011777*(\$1-${START})+\$2*1000) title 'response' with line
+#EOF
+#
+#cat <<EOF | gnuplot
+#set terminal png size 900,600
+#set xdata time
+#set timefmt "%s"
+#set output "offset${RUN}-15m.png"
+#set grid
+#set xlabel "Time"
+#set format x "%d-%H:%M"
+#set xtic rotate by -45 scale 0
+#set ylabel ""
+#set ytics format "%1.3f ms" nomirror
+#set title "offset of remote clock (15m) + 11.885ppm"
+#set key bottom right box
+#plot \\
+#    'offsets${RUN}-zoom2.log' using 1:(\$3*1000+0.011885*(\$1-${START})) title 'request' with line, \
+#    'offsets${RUN}-zoom2.log' using 1:(\$3*1000+0.011885*(\$1-${START})+\$2*1000) title 'response' with line
+#EOF
+#
+#cat <<EOF | gnuplot
+#set terminal png size 900,600
+#set xdata time
+#set timefmt "%s"
+#set output "offset${RUN}-1h.png"
+#set grid
+#set xlabel "Time"
+#set format x "%d-%H:%M"
+#set xtic rotate by -45 scale 0
+#set ylabel ""
+#set ytics format "%1.3f ms" nomirror
+#set title "offset of remote clock (1h) + 11.223ppm"
+#set key bottom right box
+#plot \\
+#    'offsets${RUN}-zoom3.log' using 1:(\$3*1000+0.011223*(\$1-${START})) title 'request' with line, \
+#    'offsets${RUN}-zoom3.log' using 1:(\$3*1000+0.011223*(\$1-${START})+\$2*1000) title 'response' with line
+#EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ms" nomirror
+set title "offset of remote clock +4.149ppm"
+set key bottom right box
+plot \\
+    'offsets${RUN}.log' using 1:(\$3*1000+0.004149*(\$1-${START})) title 'request' with line, \
+    'offsets${RUN}.log' using 1:(\$3*1000+0.004149*(\$1-${START})+\$2*1000) title 'response' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "jitter${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f us" nomirror
+set title "offset change from previous second"
+set key bottom right box
+plot \\
+    'jitter${RUN}.log' using 1:(\$3*1000000) title 'jitter' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "rtt${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f us" nomirror
+set title "rtt of remote clock"
+set key top left box
+plot \\
+    'offsets${RUN}.log' using 1:(\$2*1000000) title 'ntp server' with line
+EOF
+
+#cat <<EOF | gnuplot
+#set terminal png size 900,600
+#set xdata time
+#set timefmt "%s"
+#set output "rtt${RUN}-compare.png"
+#set grid
+#set xlabel "Time"
+#set format x "%d-%H:%M"
+#set xtic rotate by -45 scale 0
+#set ylabel ""
+#set ytics format "%1.1f us" nomirror
+#set title "rtt comparison: switch vs direct"
+#set key top left box
+#plot \\
+#    'offsets3-join.log' using (171164+\$1):(\$2*1000000) title 'switch' with line, \
+#    'offsets${RUN}.log' using 1:(\$2*1000000) title 'direct' with line
+#EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "proc${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f us" nomirror
+set title "proctime of remote clock"
+set key top right box
+plot \\
+    'offsets${RUN}.log' using 1:(\$4*1000000) title 'ntp server' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "tx${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f us" nomirror
+set title "local software to hardware TX timestamp difference"
+set key top right box
+plot \\
+    'offsets${RUN}.log' using 1:(\$5*1000000) title 'local' with points
+EOF
+

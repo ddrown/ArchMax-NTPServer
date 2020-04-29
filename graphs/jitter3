@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+my $ppm = 0;
+my $start = 0;
+my $temperature = 0;
+GetOptions (
+    "ppm=s" => \$ppm,
+    "start=i"   => \$start,
+    "temperature" => \$temperature
+) or die("Error in command line arguments\n");
+
+if($ppm) {
+  $ppm = $ppm / 1000000;
+}
+
+my $last;
+while(<>) {
+  chomp($_);
+  my(@a) = split(/ +/);
+  my $this = $a[2]+$a[1];
+  if($ppm) {
+    $this += $ppm*($a[0]-$start);
+  }
+  if(defined($last)) {
+    if($temperature) {
+      printf("%d %.9f %.9f %.3f\n", $a[0], $this, $this - $last, $a[5]);
+    } else {
+      printf("%d %.9f %.9f\n", $a[0], $this, $this - $last);
+    }
+  }
+  $last = $this;
+}

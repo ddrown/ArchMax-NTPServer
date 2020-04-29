@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+
+use strict;
+
+my $last;
+while(<>) {
+  chomp($_);
+  my(@a) = split(/ +/);
+  my $this = $a[2]+$a[1]+0.000106990*($a[0]-1553486401);
+  if(defined($last)) {
+    printf("%d %.9f %.9f %.9f\n", $a[0], $this, $this - $last, $a[1]);
+  }
+  $last = $this;
+}

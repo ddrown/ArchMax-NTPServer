@@ -1,0 +1,46 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+# T  rtt   rxs        rxsub     txs        txsub      ends       endsub     offs  offsub     Ts         Tsub      T-start
+# I 354365 3762733097 431815355 3762733093 3366342847 3762467989 231917178 265107 2132235141 3762467989 231186357 14050
+
+my(@fields_orig) = qw(mode rtt rx rxsub tx txsub local localsub offset offsetsub localtx localtxsub txdelay);
+my(@fields_temperature) = qw(mode rtt rx rxsub tx txsub local localsub offset offsetsub localtx localtxsub temp txdelay);
+my(@fields) = @fields_orig;
+
+GetOptions (
+    "temperature" => sub { @fields = @fields_temperature; },
+    ) or die("Error in command line arguments\n");
+
+my(%last_r);
+while(<>) {
+  s/^> //;
+  chomp($_);
+  if(/^([IB?]) \d+ \d+/) {
+    my(@r) = split(/ /);
+    my $i = 0;
+    my(%this_r) = map { $fields[$i++] => $_ } @r;
+
+    if(%last_r and $this_r{mode} eq "I") {
+      my $proc = $this_r{tx} - $last_r{rx};
+      my $procsub = $this_r{txsub} - $last_r{rxsub};
+      if($procsub < 0) {
+        $procsub += 2**32;
+        $proc -= 1;
+      }
+      my $proct = $proc + $procsub/2**32;
+      my $local_proct = $this_r{txdelay}/1000000000;
+      my $rtt = $last_r{rtt}/1000000000 - $proct - $local_proct;
+      my $offsett = $last_r{offset} + $last_r{offsetsub}/2**31 - $local_proct; # not adjusted for rtt
+      if(defined($this_r{temp})) {
+        printf("%d %.9f %.9f %.9f %.9f %.3f\n", $last_r{rx} - 2208988800, $rtt, $offsett, $proct, $local_proct, $this_r{temp}/1000);
+      } else {
+        printf("%d %.9f %.9f %.9f %.9f\n", $last_r{rx} - 2208988800, $rtt, $offsett, $proct, $local_proct);
+      }
+    }
+
+    %last_r = %this_r;
+  }
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/perl
+
+use strict;
+my $t0 = 565890 + 591663277/2**32;
+printf("%.9f\n", $t0);
+$t0 += 0.000000001;
+printf("%.9f\n", $t0);

@@ -1,0 +1,47 @@
+#!/usr/bin/perl
+
+use strict;
+
+my $r1 = 8130;
+my $therm_b = 3950;
+my $therm_t0 = 298.15; # in K
+my $therm_r0 = 10000;
+my $KtoC = 273.15;
+
+while(<>) {
+  chomp($_);
+  my(@a) = split(/ /);
+  my $vcc = $a[2]/1000;
+  my $adc_v = $a[4]/1000000;
+  my $ohms = ($vcc*$r1-$adc_v*$r1)/$adc_v; # this is easier in adc values instead of volts
+  my $C = 1/(1/$therm_t0+1/$therm_b*log($ohms/$therm_r0))-$KtoC;
+  my $F = $C * 9/5 + 32;
+  my $C_2 = ($a[5]/1000-500)/10;
+  my $F_2 = $C_2 * 9/5 + 32;
+  printf("%d %.3f %.3f %.3f %.3f\n", $a[0], $a[1]/1000, $F, $F_2, $a[6]/1000);
+}
+
+# V=IR
+# Vr=Vc*R2/(R1+R2)
+# Vr*(R1+R2)=Vc*R2
+# Vr*R1=Vc*R2-Vr*R2
+# R1=(Vc*R2-Vr*R2)/Vr
+# R1=Vc*R2/Vr - R2
+# Vr=1.420251
+# ohms=10760
+# C=23.360
+# adc value = 1761
+# R1 voltage = 3.3*8130/1.420251 - 8130
+# R1 adc     = 4096*8130/1761 - 8130
+#3.3*8130/1.420251 - 8130
+#=10760
+#4096*8130/1761 - 8130
+#=10779
+#4096*8130/1762 - 8130
+#=10769
+#o=10760
+#1/(1/298.15+1/3950*l(o/10000))-273.15
+#o=10779
+#1/(1/298.15+1/3950*l(o/10000))-273.15
+#o=10769
+

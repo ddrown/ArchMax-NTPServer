@@ -1,0 +1,84 @@
+#!/bin/sh
+
+RUN=7
+START=1554532766
+
+#echo temps
+#./resist-temp <run${RUN}.log >temps${RUN}.log
+echo split on voltage
+awk '($3 > 3300) { print }' <run${RUN}.log >run${RUN}-highv.log
+awk '($3 <= 3300) { print }' <run${RUN}.log >run${RUN}-lowv.log
+echo split on time
+awk '($1 > 3764050422) && ($1 < 3764051065) { print }' <run${RUN}.log >run${RUN}-zoom.log
+echo graphs
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'temps${RUN}.log' using 1:(\$2-40) title 'internal-40' with line, \\
+    'temps${RUN}.log' using 1:3 title 'external' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp-byvoltage${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'run${RUN}-highv.log' using 1:(\$2/1000) title '> 3.3V' with points, \\
+    'run${RUN}-lowv.log' using 1:(\$2/1000) title '<= 3.3V' with points
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set output "temp-volts${RUN}.png"
+set grid
+set xlabel "Temperature"
+set format x "%1.1f F"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f V" nomirror
+set title "Temperature vs Voltage"
+set key top right box
+plot \\
+    'run${RUN}.log' using (\$2/1000):(\$3/1000) title '' with points
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp${RUN}-zoom.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set y2tics format "%1.2f V" nomirror
+set title "Temperature & Supply Voltage"
+set key bottom left box
+plot \\
+    'run${RUN}-zoom.log' using 1:(\$2/1000) title 'temp' with line, \\
+    'run${RUN}-zoom.log' using 1:(\$3/1000) title 'voltage' with line axis x1y2
+EOF
+
