@@ -4,7 +4,6 @@
 #include "uart.h"
 #include "stm32f4xx_ll_adc.h"
 #include "ptp.h"
-#include "bme280.h"
 
 // 3.3V per count of 4096 in nV
 #define NV_PER_COUNT_EXPECTED 805664
@@ -37,11 +36,9 @@ static int32_t last_ext_temp[2] = {0,0};
 
 #define ADC_CHANNELS 5
 static volatile uint16_t adc_buffer[ADC_CHANNELS];
-static struct bme280_calibration_data bme280_cal;
 
 void adc_init() {
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_buffer, ADC_CHANNELS);
-  bme280_read_calibration(&bme280_cal);
 }
 
 static uint16_t avg_16(uint16_t *values, uint8_t length) {
@@ -71,8 +68,6 @@ static int32_t avg_i(int32_t *values, uint8_t length) {
 void print_adc() {
   struct timestamp now;
 
-  int32_t btmp = bme280_curtemp(&bme280_cal);
-
   ptp_timestamp(&now);
   write_uart_u(now.seconds);
   write_uart_s(" ");
@@ -85,8 +80,6 @@ void print_adc() {
   write_uart_u(last_ext_temp[0]);
   write_uart_s(" ");
   write_uart_u(last_ext_temp[1]);
-  write_uart_s(" ");
-  write_uart_i(btmp);
   write_uart_s("\n");
 }
 

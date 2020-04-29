@@ -30,7 +30,6 @@
 #include "ping.h"
 #include "ntp.h"
 #include "adc.h"
-#include "bme280.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -138,7 +137,6 @@ int main(void)
   }
   write_uart_s("init done\n");
   cmdline_prompt();
-  bme280_normal_mode();
   /* USER CODE END 2 */
 
   /* Infinite loop */
