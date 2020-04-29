@@ -157,6 +157,15 @@ void ptp_timestamp(struct timestamp *now) {
   now->subseconds = heth.Instance->PTPTSLR;
 }
 
+uint64_t ptp_now() {
+  struct timestamp now;
+
+  now.seconds = heth.Instance->PTPTSHR;
+  now.subseconds = heth.Instance->PTPTSLR;
+
+  return (uint64_t)now.seconds << 32 | now.subseconds << 1;
+}
+
 #define SUBSECONDS_PER_SECOND 2147483648
 
 // limited to around 18 seconds
