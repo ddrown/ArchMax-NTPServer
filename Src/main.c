@@ -157,7 +157,7 @@ int main(void)
       last = tick;
       switch(tick % 1000) {
         case 0:
-          ntp_poll();
+          ntp_poll(0);
         case 100:
         case 200:
         case 300:
@@ -176,6 +176,10 @@ int main(void)
 
         case 901:
           print_adc();
+          break;
+
+        case 550:
+          ntp_poll(1);
           break;
       }
     }

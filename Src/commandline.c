@@ -17,7 +17,6 @@ static void print_help() {
   "phy - show PHY state\n"
   "blink - blink LED\n"
   "ping [ip] - ping ip\n"
-  "ntp [ip] - send ntp request\n"
   "ntppoll [0/1] - poll every second\n"
   "ptp - ptp status\n"
   "count - ptp counters\n"
@@ -110,8 +109,6 @@ static void run_command(char *cmdline) {
     ptp_counters();
   } else if(strncmp("ping ", cmdline, 5) == 0) {
     ping_send(cmdline+5);
-  } else if(strncmp("ntp ", cmdline, 4) == 0) {
-    ntp_send(cmdline+4);
   } else if(strncmp("ntppoll ", cmdline, 8) == 0) {
     uint8_t active = atoi(cmdline+8);
     ntp_poll_set(active);
