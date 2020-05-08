@@ -6,6 +6,7 @@
 #include "ping.h"
 #include "ntp.h"
 #include "adc.h"
+#include "timer.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -19,6 +20,7 @@ static void print_help() {
   "ping [ip] - ping ip\n"
   "ntppoll [0/1] - poll every second\n"
   "ptp - ptp status\n"
+  "target - set ptp target time\n"
   "count - ptp counters\n"
   "step [8bit] - set subsecond step\n"
   "freqdiv [32bit] - change subsecond freq div\n"
@@ -26,6 +28,7 @@ static void print_help() {
   "subs [32bit] - change sub seconds\n"
   "adc - display internal temp and voltage\n"
   "help - print help\n"
+  "tim - print timer state\n"
   );
 }
 
@@ -105,6 +108,8 @@ static void run_command(char *cmdline) {
     phy_status();
   } else if(strcmp("ptp", cmdline) == 0) {
     ptp_status();
+  } else if(strcmp("target", cmdline) == 0) {
+    ptp_set_target();
   } else if(strcmp("count", cmdline) == 0) {
     ptp_counters();
   } else if(strncmp("ping ", cmdline, 5) == 0) {
@@ -127,6 +132,8 @@ static void run_command(char *cmdline) {
   } else if(strcmp("adc", cmdline) == 0) {
     print_last_vcc();
     print_last_temp();
+  } else if(strcmp("tim", cmdline) == 0) {
+    print_tim();
   } else {
     print_help();
   }

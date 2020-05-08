@@ -114,8 +114,12 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
   src->last_rx_s = response->rx_s;
   src->last_rx_subs = response->rx_subs;
 
-  // T  rtt   rxs        rxsub     txs        txsub      ends       endsub     offs  offsub     Ts         Tsub      T-start
-  // I 354365 3762733097 431815355 3762733093 3366342847 3762467989 231917178 265107 2132235141 3762467989 231186357 14050
+  // IP         T rtt    rxs        rxsub      txs        txsub      ends       endsub    offs       offsub     Ts         Tsub      temp   T-start
+  // 10.1.2.198 I 684570 3797178914 3580030602 3797178913 3578419865 1649695265 693000685 2147483649 1098484721 1649695265 691558335 121334 12924
+  //
+  // pps 1636580272 123407 122 ptp 3762468079 1646339062 123524
+  // 10.1.2.198 I 792936 3797806186 2546098815 3797806185 2543444289 3762468079 1025020526 35338107 249731699 3762468079 1023345879 -433033 13118
+  // 10.1.2.128 I 931448 3797806187 615910419 3797806186 615504795 3762468080 60303814 35338107 249651666 3762468080 58331246 -433033 12900
   write_uart_s(src->ipstr);
   write_uart_s(" ");
   write_uart_s(type);

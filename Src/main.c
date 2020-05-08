@@ -30,6 +30,8 @@
 #include "ping.h"
 #include "ntp.h"
 #include "adc.h"
+#include "timer.h"
+#include "jobs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -128,7 +130,7 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   uint32_t start = HAL_GetTick();
-  HAL_TIM_Base_Start(&htim3);
+  timer_start();
   adc_init();
   ptp_init();
   ping_init();
@@ -141,48 +143,12 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  uint32_t last = 0;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    if(uart_rx_ready()) {
-      cmdline_addchr(uart_rx_data());
-    }
-    MX_LWIP_Process();
-
-    uint32_t tick = HAL_GetTick();
-    if(tick != last) {
-      last = tick;
-      switch(tick % 1000) {
-        case 0:
-          ntp_poll(0);
-        case 100:
-        case 200:
-        case 300:
-        case 400:
-        case 500:
-        case 600:
-        case 700:
-        case 800:
-          adc_poll(); // every 100ms
-          break;
-
-        case 900:
-          adc_poll();
-          update_adc();
-          break;
-
-        case 901:
-          print_adc();
-          break;
-
-        case 550:
-          ntp_poll(1);
-          break;
-      }
-    }
+    runjobs();
   }
   /* USER CODE END 3 */
 }
@@ -399,7 +365,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 0;
+  htim2.Init.Period = 4294967295;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -441,6 +407,9 @@ static void MX_TIM2_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN TIM2_Init 2 */
+
+  // Attach ETH PTP to TIM2 ITR1
+  HAL_TIMEx_RemapConfig(&htim2, TIM_TIM2_ETH_PTP);
 
   /* USER CODE END TIM2_Init 2 */
 

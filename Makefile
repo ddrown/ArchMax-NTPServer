@@ -65,6 +65,8 @@ Src/ptp.c \
 Src/ntp.c \
 Src/int64.c \
 Src/adc.c \
+Src/timer.c \
+Src/jobs.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c \
 Middlewares/Third_Party/LwIP/src/netif/ppp/auth.c \
 Middlewares/Third_Party/LwIP/src/netif/ppp/ccp.c \
