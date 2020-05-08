@@ -73,7 +73,7 @@ timestamp choices:
 
  ETH_PTPTTHR - target time high
  ETH_PTPTTLR - target time low
- 
+
 
 
 PHY notes:
@@ -238,3 +238,37 @@ top 5V = 5.53k
 bottom 5V = 5.55k
 
 try using 2k dividers?
+
+
+// 5V divider
+    PA0-WKUP     ------> ADC1_IN0
+// thermistor
+    PA4     ------> ADC1_IN4
+// tmp36
+    PA5     ------> ADC1_IN5
+
+// L2:2 - GPS PPS
+    PA3     ------> TIM2_CH4
+
+// R2:1 - GPS
+    PB6     ------> USART1_TX
+// R2:2 - GPS
+    PB7     ------> USART1_RX
+
+// R3:3
+    PC10     ------> USART3_TX
+// R3:4
+    PC11     ------> USART3_RX
+
+// R3:5
+    PC12     ------> UART5_TX
+// R3:6
+    PD2     ------> UART5_RX
+
+// DEBUG
+    PC6     ------> USART6_TX
+    PC7     ------> USART6_RX
+
+// was used for BME280
+    PB8     ------> I2C1_SCL
+    PB9     ------> I2C1_SDA

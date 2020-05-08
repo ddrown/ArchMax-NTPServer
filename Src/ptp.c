@@ -21,12 +21,27 @@
 #define ETH_PTPTSSR_TSSO_Msk                          (0x1UL << ETH_PTPTSSR_TSSO_Pos) /*!< 0x00000010 */
 #define ETH_PTPTSSR_TSSO                              ETH_PTPTSSR_TSSO_Msk     /* Time stamp seconds overflow */
 
+/*
+ * the clock was running at s/cycle
+ * 1/168000000            = 0.000000005952
+ * PTPSSIR determines the increment in s/cycle
+ * 13/(2^31)              = 0.000000006053
+ * so it needs to be this % slow
+ * 6053/5952              = 1.016969086
+ * PTPTSAR slows the clock down by a %
+ * (2-1.016969086)*(2^32) = 4222085626
+ *
+ * calculating new updates/s
+ * (4227995019*168000000) / (2^32) = 165380342
+ * which ends up being s/s
+ * (165380342*13)/(2^31)           = 1.001145898
+ */
 void ptp_init() {
   heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSE; // enable PTP system
   heth.Instance->PTPTSCR &= ~ETH_PTPTSSR_TSSSR_Msk; // use 2^31 subseconds
-  //heth.Instance->PTPTSAR = 4223572034; // 168MHz reduced to 6.053ns/tick (4223572034/2^32)
+  //heth.Instance->PTPTSAR = 4222085626
   heth.Instance->PTPTSAR = 4227995019; // local clock is 1049.160 ppm slow
-  heth.Instance->PTPSSIR = 13; // 6.053ns/tick = 13/2^31
+  heth.Instance->PTPSSIR = 13;
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
   }
@@ -169,6 +184,7 @@ uint64_t ptp_now() {
 #define SUBSECONDS_PER_SECOND 2147483648
 
 // limited to around 18 seconds
+// assumes timestamps are in 2^31 subsecond format
 uint64_t ptp_ns_diff(const struct timestamp *start, const struct timestamp *end) {
   uint64_t ns = 0;
 
@@ -182,6 +198,15 @@ uint64_t ptp_ns_diff(const struct timestamp *start, const struct timestamp *end)
   ns -= start->subseconds;
   ns = ns * 1000000000 / SUBSECONDS_PER_SECOND;
   return ns;
+}
+
+void ptp_set_target() {
+  uint32_t seconds = 1;
+  if(heth.Instance->PTPTSLR > 2000000000) {
+    seconds++; // allow at least 68 ms
+  }
+  heth.Instance->PTPTTHR = seconds + heth.Instance->PTPTSHR;
+  heth.Instance->PTPTTLR = 0;
 }
 
 void ptp_counters() {
