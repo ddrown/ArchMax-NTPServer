@@ -1,2 +1,4 @@
 build
 *.swp
+graphs/*.log
+graphs/*.png
