@@ -7,6 +7,7 @@ extern TIM_HandleTypeDef htim3;
 uint32_t get_counters();
 void timer_start();
 void print_tim();
+uint32_t get_last_pps();
 
 extern volatile struct pps_capture_t {
   uint32_t irq_milli;

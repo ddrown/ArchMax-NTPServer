@@ -3,6 +3,7 @@
 #include "timer.h"
 #include "uart.h"
 #include "ethernetif.h"
+#include "ptp.h"
 
 volatile struct pps_capture_t pps_capture;
 
@@ -31,6 +32,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     pps_capture.ptp_irq_milli = irq_milli;
     pps_capture.ptp_irq_time = irq_time;
     pps_capture.ptp_seconds = heth.Instance->PTPTTHR;
+    ptp_pending = 0;
   } else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
     // PPS input capture
     pps_capture.cap = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_4);
@@ -38,6 +40,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
     pps_capture.irq_milli = irq_milli;
     pps_capture.events++;
   }
+}
+
+uint32_t get_last_pps() {
+  return pps_capture.cap;
 }
 
 void print_tim() {

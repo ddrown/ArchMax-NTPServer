@@ -7,6 +7,7 @@
 #include "ntp.h"
 #include "adc.h"
 #include "timer.h"
+#include "NTPClockCMD.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -29,6 +30,9 @@ static void print_help() {
   "adc - display internal temp and voltage\n"
   "help - print help\n"
   "tim - print timer state\n"
+  "setntp - set ntp timer\n"
+  "getntp - get ntp time\n"
+  "ntpoffset - get current offset\n"
   );
 }
 
@@ -134,6 +138,12 @@ static void run_command(char *cmdline) {
     print_last_temp();
   } else if(strcmp("tim", cmdline) == 0) {
     print_tim();
+  } else if(strcmp("setntp", cmdline) == 0) {
+    setntp();
+  } else if(strcmp("getntp", cmdline) == 0) {
+    getntp();
+  } else if(strcmp("ntpoffset", cmdline) == 0) {
+    ntpoffset();
   } else {
     print_help();
   }

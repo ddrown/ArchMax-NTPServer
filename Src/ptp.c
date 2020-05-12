@@ -200,13 +200,20 @@ uint64_t ptp_ns_diff(const struct timestamp *start, const struct timestamp *end)
   return ns;
 }
 
+volatile uint8_t ptp_pending = 0;
 void ptp_set_target() {
   uint32_t seconds = 1;
+  if(ptp_pending) {
+    return;
+  }
+
   if(heth.Instance->PTPTSLR > 2000000000) {
     seconds++; // allow at least 68 ms
   }
-  heth.Instance->PTPTTHR = seconds + heth.Instance->PTPTSHR;
+  seconds += heth.Instance->PTPTSHR;
+  heth.Instance->PTPTTHR = seconds;
   heth.Instance->PTPTTLR = 0;
+  ptp_pending = 1;
 }
 
 void ptp_counters() {

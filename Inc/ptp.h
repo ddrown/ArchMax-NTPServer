@@ -5,6 +5,7 @@ struct timestamp {
   uint32_t seconds;
   uint32_t subseconds; // in 1s/2^31 units
 };
+extern volatile uint8_t ptp_pending;
 
 void ptp_init();
 void ptp_status();
