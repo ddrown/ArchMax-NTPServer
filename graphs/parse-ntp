@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+use strict;
+
+my(%last);
+while(<>) {
+  # IP         T rtt    rxs        rxsub      txs        txsub      ends       endsub     o offsu Ts         Tsub      temp   T-start
+  if(/^[0-9.]+ I [0-9]+ ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) [0-9]+ [0-9]+ ([0-9]+) ([0-9]+) [0-9]+ [0-9]+$/) {
+    my($rxservs,$rxservsub,$txservs,$txservsub,$rxlocals,$rxlocalsub,$txlocals,$txlocalsub) = ($1,$2,$3,$4,$5,$6,$7,$8);
+    my $rxserv = $rxservs << 32;
+    $rxserv += $rxservsub;
+    my $txserv = $txservs << 32;
+    $txserv += $txservsub;
+    my $rxlocal = $rxlocals << 32;
+    $rxlocal += $rxlocalsub << 1;
+    my $txlocal = $txlocals << 32;
+    $txlocal += $txlocalsub << 1;
+
+    if(%last) {
+      my $txdiff = ($last{txlocal}-$last{rxserv}) / 2**32 * 1e9;
+      my $rxdiff = -1 * ($txserv-$last{rxlocal}) / 2**32 * 1e9;
+      my $rtt = $rxdiff - $txdiff;
+      my $offset = $txdiff + $rtt/2;
+      printf("%u %d %d %d %d\n", $last{s}, $txdiff, $rxdiff, $rtt, $offset);
+    }
+
+    %last = (
+      s => $rxservs - 2208988800,
+      rxserv => $rxserv,
+      txserv => $txserv,
+      rxlocal => $rxlocal,
+      txlocal => $txlocal
+	);
+  }
+}

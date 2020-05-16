@@ -4,6 +4,7 @@ extern "C" {
 #include "timer.h"
 #include "timesync.h"
 #include "uart.h"
+#include "ptp.h"
 #include <ctype.h>
 }
 
@@ -12,9 +13,13 @@ extern "C" {
 #include "NTPClockCMD.h"
 #include "ClockPID.h"
 
+ClockPID_c ClockPID;
+ClockPID_c PTPPID;
+
 static bool time_set = false;
-uint32_t lastpps = 0;
-uint32_t lastgpstime = 0;
+static uint32_t lastpps = 0;
+static uint32_t lastgpstime = 0;
+static const float billion = 1000000000.0;
 
 const DateTime compile = DateTime(__DATE__, __TIME__);
 
@@ -52,6 +57,39 @@ void set_pid_constant(char type, uint32_t millionth) {
   show_pid();
 }
 
+static uint32_t last_ptp_seconds = 0;
+static void compare_ptp() {
+  uint32_t thisptp_seconds = pps_capture.ptp_seconds;
+  uint32_t thisptp_cap = pps_capture.ptp_cap;
+
+  if(thisptp_seconds == last_ptp_seconds) {
+    return;
+  }
+  last_ptp_seconds = thisptp_seconds;
+
+  int64_t offset = localClock.getOffset(thisptp_cap, thisptp_seconds, 0);
+
+  PTPPID.add_sample(thisptp_cap, thisptp_seconds, offset);
+
+  int32_t newppb = (ClockPID.d_out() - PTPPID.p_out() - PTPPID.i_out()) * billion;
+
+  ptp_set_freq_div(newppb);
+
+  write_uart_s("ptp: ");
+  write_uart_64i(offset);
+  write_uart_s(" P=");
+  write_uart_i(PTPPID.p_out() * billion);
+  write_uart_s(" I=");
+  write_uart_i(PTPPID.i_out() * billion);
+  write_uart_s(" D=");
+  write_uart_i(PTPPID.d_out() * billion);
+  write_uart_s(" ppb=");
+  write_uart_i(newppb);
+  write_uart_s(" T=");
+  write_uart_u(thisptp_seconds);
+  write_uart_s("\n");
+}
+
 void time_sync() {
   uint32_t thispps, thisgpstime;
   uint32_t thispps_millis, thisgps_millis;
@@ -67,6 +105,8 @@ void time_sync() {
     pps_to_gps_ms += 1000;
     thisgpstime++;
   }
+
+  compare_ptp();
 
   // when the gps timestamp is outside of the normal window, reject it
   // this value is typically around 300ms
@@ -87,6 +127,7 @@ void time_sync() {
 
   if(!time_set) {
     uint32_t compileTime = compile.ntptime();
+    struct timestamp ptp_now;
 
     // allow for compile timezone to be 12 hours ahead
     compileTime -= 12*60*60;
@@ -100,6 +141,10 @@ void time_sync() {
 
     localClock.setTime(thispps, thisgpstime);
     ClockPID.add_sample(thispps, thisgpstime, 0);
+
+    ptp_timestamp(&ptp_now);
+    ptp_update_s(thisgpstime - ptp_now.seconds);
+
     time_set = true;
     write_uart_s("set clock: ");
     write_uart_u(thisgpstime);
@@ -107,7 +152,6 @@ void time_sync() {
     write_uart_u(pps_to_gps_ms);
     write_uart_s("\n");
   } else {
-    float billion = 1000000000.0;
     int64_t offset = localClock.getOffset(thispps, thisgpstime, 0);
 
     ClockPID.add_sample(thispps, thisgpstime, offset);

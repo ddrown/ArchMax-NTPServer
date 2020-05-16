@@ -6,8 +6,6 @@ extern "C" {
 #include "ClockPID.h"
 #include "platform-clock.h"
 
-ClockPID_c ClockPID;
-
 double ClockPID_c::average(int32_t *points) {
   double sum = 0;
 
@@ -185,7 +183,7 @@ float ClockPID_c::add_sample(uint32_t timestamp, uint32_t realSecond, int64_t co
   last_out_d = last_d.d * kd;
 
   last_out_p = limit(last_out_p, 0.0015);
-  last_out_i = limit(last_out_i, 0.000002); // limit I to speed up initial sync
+  last_out_i = limit(last_out_i, 0.000005); // limit I to speed up initial sync
   last_out_d = limit(last_out_d, 0.0015);
   last_out = last_out_p + last_out_i + last_out_d;
   last_out = limit(last_out, 0.0015);

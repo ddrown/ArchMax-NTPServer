@@ -1,6 +1,8 @@
 #ifndef PTP_H
 #define PTP_H
 
+#define PTP_INCREMENT_DEFAULT 4223155695
+
 struct timestamp {
   uint32_t seconds;
   uint32_t subseconds; // in 1s/2^31 units

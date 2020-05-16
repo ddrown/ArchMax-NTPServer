@@ -26,7 +26,7 @@
  * 1/168000000            = 0.000000005952
  * PTPSSIR determines the increment in s/cycle
  * 13/(2^31)              = 0.000000006053
- * so it needs to be this % slow
+ * so it needs to be this % slow -- not enough precision
  * 6053/5952              = 1.016969086
  * PTPTSAR slows the clock down by a %
  * (2-1.016969086)*(2^32) = 4222085626
@@ -35,12 +35,20 @@
  * (4227995019*168000000) / (2^32) = 165380342
  * which ends up being s/s
  * (165380342*13)/(2^31)           = 1.001145898
+ *
+ * default setting
+ * (4223155695*168000000) / (2^32) * 13/(2^31) = 1.000000000111
+ *
+ * running 1500ppm fast
+ * (4229490428 *168000000) / (2^32) * 13/(2^31) = 1.001499999982
+ * running 1500ppm slow
+ * (4216820962 *168000000) / (2^32) * 13/(2^31) = .998500000239
+ * 6334733 counts per 1500ppm
  */
 void ptp_init() {
   heth.Instance->PTPTSCR |= ETH_PTPTSCR_TSE; // enable PTP system
   heth.Instance->PTPTSCR &= ~ETH_PTPTSSR_TSSSR_Msk; // use 2^31 subseconds
-  //heth.Instance->PTPTSAR = 4222085626
-  heth.Instance->PTPTSAR = 4227995019; // local clock is 1049.160 ppm slow
+  heth.Instance->PTPTSAR = PTP_INCREMENT_DEFAULT;
   heth.Instance->PTPSSIR = 13;
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
@@ -60,8 +68,10 @@ void ptp_set_step(uint8_t step) {
   heth.Instance->PTPSSIR = step;
 }
 
-void ptp_set_freq_div(int32_t div) {
-  heth.Instance->PTPTSAR += div;
+void ptp_set_freq_div(int32_t ppb) {
+  // 6334733 counts per 1500000ppb
+  int32_t newcount = ppb * 4.223155333333f;
+  heth.Instance->PTPTSAR = newcount + PTP_INCREMENT_DEFAULT;
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
   }
