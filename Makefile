@@ -146,7 +146,12 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
 
 CXX_SOURCES = Src/NTPClock.cpp \
-Src/NTPClockCMD.cpp
+Src/NTPClockCMD.cpp \
+Src/DateTime.cpp \
+Src/GPS.cpp \
+Src/GPSDateTime.cpp \
+Src/timesync.cpp \
+Src/ClockPID.cpp
 
 # ASM sources
 ASM_SOURCES =  \
@@ -267,7 +272,7 @@ vpath %.c $(sort $(dir $(C_SOURCES)))
 OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(ASM_SOURCES:.s=.o)))
 vpath %.s $(sort $(dir $(ASM_SOURCES)))
 # C++ objects
-OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(C_SOURCES:.cpp=.o)))
+OBJECTS += $(addprefix $(BUILD_DIR)/,$(notdir $(CXX_SOURCES:.cpp=.o)))
 vpath %.cpp $(sort $(dir $(CXX_SOURCES)))
 
 $(BUILD_DIR)/%.o: %.c Makefile | $(BUILD_DIR) 

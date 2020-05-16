@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+my $use_memory = 0;
+GetOptions(
+    "memory" => \$use_memory
+    ) or die("Error in command line arugments\n");
+
+my $regex = $use_memory ? qr/^200/ : qr/^080/;
+
+my(@objects);
+open(OBJDUMP,"arm-none-eabi-objdump -x build/ArchMax.elf |") or die("unable to open objdump: $!");
+while(<OBJDUMP>) {
+  if(/$regex/) {
+    chomp($_);
+    my(@a) = split(/ +/);
+    push(@objects,[$_,@a]);
+  }
+}
+
+my(@sizes);
+my($last, $lastline);
+foreach my $object (sort { $objects[$a][1] cmp $objects[$b][1] } 0..$#objects) {
+  my $this = hex($objects[$object][1]);
+  if(defined($last)) {
+    push(@sizes, [$this-$last,$lastline]);
+  }
+  $last=$this;
+  $lastline=$objects[$object][0];
+}
+
+foreach my $object (sort { $sizes[$a][0] <=> $sizes[$b][0] } 0..$#sizes) {
+  printf("%4u %s\n", $sizes[$object][0], $sizes[$object][1]);
+}

@@ -7,8 +7,9 @@
 #include "adc.h"
 #include "ptp.h"
 #include "timer.h"
+#include "timesync.h"
 
-enum jobids {NTP_POLL, ADC_POLL, UPDATE_ADC, PTP_SET_TARGET, PRINT_TIME, ENDJOB};
+enum jobids {NTP_POLL, ADC_POLL, UPDATE_ADC, PTP_SET_TARGET, PRINT_TIME, TIME_SYNC, ENDJOB};
 
 static const struct jobdefs {
   enum jobids jobtype;
@@ -18,18 +19,19 @@ static const struct jobdefs {
   { .jobtype= NTP_POLL,       .tick=   0, .args= 0 },
   { .jobtype= ADC_POLL,       .tick=   0, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 100, .args= 0 },
+  { .jobtype= TIME_SYNC,      .tick= 150, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 200, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 300, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 400, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 500, .args= 0 },
   { .jobtype= NTP_POLL,       .tick= 550, .args= 1 },
   { .jobtype= ADC_POLL,       .tick= 600, .args= 0 },
+  { .jobtype= TIME_SYNC,      .tick= 650, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 700, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 800, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 900, .args= 0 },
   { .jobtype= UPDATE_ADC,     .tick= 900, .args= 0 },
   { .jobtype= PTP_SET_TARGET, .tick= 901, .args= 0 },
-  { .jobtype= PRINT_TIME,     .tick= 910, .args= 0 },
   { .jobtype= ENDJOB,         .tick= 999, .args= 0 },
 };
 
@@ -49,6 +51,9 @@ static void runjob(uint8_t job) {
       break;
     case PRINT_TIME:
       print_tim();
+      break;
+    case TIME_SYNC:
+      time_sync();
       break;
     case ENDJOB:
       break;

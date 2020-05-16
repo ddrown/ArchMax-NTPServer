@@ -5,6 +5,7 @@
 
 #include "uart.h"
 #include "int64.h"
+#include "GPS.h"
 
 void write_uart_ch(char ch) {
   HAL_UART_Transmit(&UART_NAME, (uint8_t *)&ch, 1, 500);
@@ -54,14 +55,18 @@ char uartBuffer[10];
 uint8_t start = 0, end = 0, overrun = 0;
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-  uint8_t newEnd = (end + 1) % sizeof(uartBuffer);
-  if(newEnd == start) { // no space left in uartBuffer
-    overrun = 1;
-  } else {
-    end = newEnd;
-    uartBuffer[end] = uartData;
+  if(huart == &UART_NAME) {
+    uint8_t newEnd = (end + 1) % sizeof(uartBuffer);
+    if(newEnd == start) { // no space left in uartBuffer
+      overrun = 1;
+    } else {
+      end = newEnd;
+      uartBuffer[end] = uartData;
+    }
+    HAL_UART_Receive_IT(huart, &uartData, 1);
+  } else if(huart == &GPS_UART_NAME) {
+    rx_gps();
   }
-  HAL_UART_Receive_IT(huart, &uartData, 1); // TODO: is there a race condition here?
 }
 
 void start_rx_uart() {

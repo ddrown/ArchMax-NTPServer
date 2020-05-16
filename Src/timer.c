@@ -4,6 +4,7 @@
 #include "uart.h"
 #include "ethernetif.h"
 #include "ptp.h"
+#include "GPS.h"
 
 volatile struct pps_capture_t pps_capture;
 
@@ -46,8 +47,14 @@ uint32_t get_last_pps() {
   return pps_capture.cap;
 }
 
+uint32_t get_last_pps_millis() {
+  return pps_capture.irq_milli;
+}
+
 void print_tim() {
   write_uart_s("pps ");
+  write_uart_u(gps_time());
+  write_uart_s(" ");
   write_uart_u(pps_capture.cap);
   write_uart_s(" ");
   write_uart_u(pps_capture.irq_milli);

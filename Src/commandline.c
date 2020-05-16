@@ -8,6 +8,8 @@
 #include "adc.h"
 #include "timer.h"
 #include "NTPClockCMD.h"
+#include "GPS.h"
+#include "timesync.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -33,6 +35,8 @@ static void print_help() {
   "setntp - set ntp timer\n"
   "getntp - get ntp time\n"
   "ntpoffset - get current offset\n"
+  "gps - show current gps time\n"
+  "pid [p/i/d] [millionth] - set P/I/D constant\n"
   );
 }
 
@@ -144,6 +148,18 @@ static void run_command(char *cmdline) {
     getntp();
   } else if(strcmp("ntpoffset", cmdline) == 0) {
     ntpoffset();
+  } else if(strcmp("gps", cmdline) == 0) {
+    gpstime();
+  } else if(strncmp("pid ", cmdline, 4) == 0 && strlen(cmdline) > 6) {
+    if(cmdline[5] != ' ') {
+      write_uart_s("pid [p/i/d] [millionth]\n");
+      return;
+    }
+    char type = cmdline[4];
+    uint32_t millionth = atoi(cmdline+6);
+    set_pid_constant(type, millionth);
+  } else if(strcmp("pid", cmdline) == 0) {
+    show_pid();
   } else {
     print_help();
   }

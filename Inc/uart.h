@@ -3,6 +3,8 @@
 
 extern UART_HandleTypeDef huart6;
 #define UART_NAME huart6
+extern UART_HandleTypeDef huart2;
+#define GPS_UART_NAME huart2
 
 void write_uart_ch(char ch);
 void write_uart_s(const char *s);
