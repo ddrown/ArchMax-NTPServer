@@ -1,0 +1,112 @@
+#!/bin/sh
+
+RUN=5-14-2020
+
+echo pps
+if [ \! -f offset-${RUN}.log ]; then
+  grep ^offset: ${RUN}.log | ./parse-offset >offset-${RUN}.log
+fi
+if [ \! -f offset-${RUN}.history ]; then
+  ./histogram 1 1 <offset-${RUN}.log >offset-${RUN}.history
+fi
+
+echo graphs
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset-${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f ns" nomirror
+set title "offset between tim2/pps (after sync)"
+set key top right box
+plot \\
+    'offset-${RUN}.log' using 1:2 title 'pps' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "pi-${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "P&I outputs"
+set key top right box
+plot \\
+    'offset-${RUN}.log' using 1:(\$3/1000) title 'p' with line, \\
+    'offset-${RUN}.log' using 1:(\$4/1000) title 'i' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "d-${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "D&total outputs"
+set key top right box
+plot \\
+    'offset-${RUN}.log' using 1:(\$5/1000) title 'd' with line, \\
+    'offset-${RUN}.log' using 1:(\$6/1000) title 'total' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "gps-${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f ms" nomirror
+set title "PPS to GPS message delay"
+set key top right box
+plot \\
+    'offset-${RUN}.log' using 1:7 title 'gps' with line
+EOF
+
+NINETYNINE=`./percentile 1 99 offset-${RUN}.log`
+SEVENTYFIVE=`./percentile 1 75 offset-${RUN}.log`
+TWENTYFIVE=`./percentile 1 25 offset-${RUN}.log`
+ONE=`./percentile 1 1 offset-${RUN}.log`
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "histogram-${RUN}.png"
+set grid
+set xtic rotate by -45 scale 0
+set title "Local Clock Offsets - Histogram"
+set xtics format "%1.0f ns" nomirror
+set label 1 gprintf("99%% = %1.2f ns",$NINETYNINE) at $NINETYNINE, graph 0.91 left front offset 1,-1
+set style arrow 1 nohead 
+set arrow from $NINETYNINE,0 to $NINETYNINE,graph 0.91 as 1
+set label 2 gprintf(" 1%% = %1.2f ns",$ONE) at $ONE, graph 0.91 right front offset -1,-1
+set style arrow 2 nohead
+set arrow from $ONE,0 to $ONE,graph 0.91 as 2
+set label 3 gprintf("25%% = %1.2f ns",$TWENTYFIVE) at $TWENTYFIVE, graph 0.7 right front offset -1,-1
+set style arrow 3 nohead
+set arrow from $TWENTYFIVE,0 to $TWENTYFIVE,graph 0.7 as 3
+set label 4 gprintf("75%% = %1.2f ns",$SEVENTYFIVE) at $SEVENTYFIVE, graph 0.7 left front offset 1,-1
+set style arrow 4 nohead
+set arrow from $SEVENTYFIVE,0 to $SEVENTYFIVE,graph 0.7 as 4
+set key off
+plot \\
+ "offset-${RUN}.history" using 1:2 title "histogram" with boxes
+EOF
+

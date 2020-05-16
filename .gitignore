@@ -2,3 +2,4 @@ build
 *.swp
 graphs/*.log
 graphs/*.png
+graphs/*.history

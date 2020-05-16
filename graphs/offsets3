@@ -8,17 +8,19 @@ use Getopt::Long;
 
 my(@fields_orig) = qw(mode rtt rx rxsub tx txsub local localsub offset offsetsub localtx localtxsub txdelay);
 my(@fields_temperature) = qw(mode rtt rx rxsub tx txsub local localsub offset offsetsub localtx localtxsub temp txdelay);
+my(@fields_ip) = qw(ip mode rtt rx rxsub tx txsub local localsub offset offsetsub localtx localtxsub temp txdelay);
 my(@fields) = @fields_orig;
 
 GetOptions (
     "temperature" => sub { @fields = @fields_temperature; },
+    "ip" => sub { @fields = @fields_ip; },
     ) or die("Error in command line arguments\n");
 
 my(%last_r);
 while(<>) {
   s/^> //;
   chomp($_);
-  if(/^([IB?]) \d+ \d+/) {
+  if(/^([0-9.]+ )?([IB?]) \d+ \d+/) {
     my(@r) = split(/ /);
     my $i = 0;
     my(%this_r) = map { $fields[$i++] => $_ } @r;
@@ -33,11 +35,11 @@ while(<>) {
       my $proct = $proc + $procsub/2**32;
       my $local_proct = $this_r{txdelay}/1000000000;
       my $rtt = $last_r{rtt}/1000000000 - $proct - $local_proct;
-      my $offsett = $last_r{offset} + $last_r{offsetsub}/2**31 - $local_proct; # not adjusted for rtt
+      my $offset = $last_r{offset} + $last_r{offsetsub}/2**31 - $local_proct; # not adjusted for rtt
       if(defined($this_r{temp})) {
-        printf("%d %.9f %.9f %.9f %.9f %.3f\n", $last_r{rx} - 2208988800, $rtt, $offsett, $proct, $local_proct, $this_r{temp}/1000);
+        printf("%d %.9f %.9f %.9f %.9f %.3f\n", $last_r{rx} - 2208988800, $rtt, $offset, $proct, $local_proct, $this_r{temp}/1000);
       } else {
-        printf("%d %.9f %.9f %.9f %.9f\n", $last_r{rx} - 2208988800, $rtt, $offsett, $proct, $local_proct);
+        printf("%d %.9f %.9f %.9f %.9f\n", $last_r{rx} - 2208988800, $rtt, $offset, $proct, $local_proct);
       }
     }
 

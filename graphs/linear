@@ -1,6 +1,22 @@
 #!/usr/bin/perl
 
 use strict;
+use Getopt::Long;
+
+my(@fields_default) = qw(time rtt offset process txdelay temp);
+my(@fields_pps) = qw(unixtime duration interval count time milli offset);
+my(@fields_ptp) = qw(time duration ppm error offset);
+my(@fields) = @fields_default;
+
+my $samples = 64;
+my $drop = 16;
+GetOptions (
+    "default" => sub { @fields = @fields_default; },
+    "pps" => sub { @fields = @fields_pps; },
+    "ptp" => sub { @fields = @fields_ptp; },
+    "samples=i" => \$samples,
+    "drop=i" => \$drop,
+    ) or die("Error in command line arguments\n");
 
 sub simple_linear_regression {
   my($points_x, $points_y, $avg_x, $avg_y) = @_;
@@ -81,14 +97,18 @@ sub percentiles_after_adjust {
   return ($m25, $m50, $m75);
 }
 
-my(@x,@y,@temps);
+my $start;
+my(@x,@y);
 while(<>) {
   chomp($_);
   my(@a) = split(/ /);
-  my $temp = $a[5];
-  push(@x, $a[0]);
-  push(@y, $a[2]);
-  if(@x == 64) {
+  my $i = 0;
+  my(%this_r) = map { $fields[$i++] => $_ } @a;
+
+  $start = $this_r{"time"} if not defined($start);
+  push(@x, $this_r{"time"} - $start);
+  push(@y, $this_r{offset});
+  if(@x == $samples) {
     my $avg_x = average(\@x);
     my $avg_y = average(\@y);
     my ($lin_a,$lin_b) = simple_linear_regression(\@x, \@y, $avg_x, $avg_y);
@@ -102,10 +122,10 @@ while(<>) {
       $esterror = $esterror / $timespan;
     }
 
-    # ts timespan pts lin-ppm lin-offset chisq lin-inversions 25p 50p 75p esterror-ppm temperature
-    printf("%d %d %d %.9f %.3f %.9f %d %.3f/%.3f/%.3f %.3f %.3f\n", $x[-1], $timespan, scalar(@x), $lin_a, $lin_b, $chi*1e6, $inversions, $m25, $m50, $m75, $esterror, $temp);
+    # ts timespan pts lin-ppm lin-offset chisq lin-inversions 25p 50p 75p esterror-ppm
+    printf("%d %d %d %.12f %.9f %.9f %d %.3f/%.3f/%.3f %.3f\n", $x[-1], $timespan, scalar(@x), $lin_a, $lin_b, $chi*1e6, $inversions, $m25, $m50, $m75, $esterror);
 
-    splice(@x, 0, 16);
-    splice(@y, 0, 16);
+    splice(@x, 0, $drop);
+    splice(@y, 0, $drop);
   }
 }

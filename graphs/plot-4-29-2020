@@ -1,0 +1,255 @@
+#!/bin/sh
+
+RUN=4-29-2020
+TIME=2208988800
+START=1588190400
+
+echo times
+grep -v '^10.1.2' $RUN.log | awk '{print $1-'$TIME', $2, $3, $4, $5, $6;}' >time$RUN.log
+
+echo temps
+./resist-temp <time${RUN}.log >temps${RUN}.log
+
+echo offsets
+(
+ echo 10.1.2.128 stm32
+ echo 10.1.2.198 cheese
+) | while read ip hostname; do
+  grep "^$ip " $RUN.log >$hostname-$RUN.log
+  ./offsets3 --ip <$hostname-${RUN}.log >$hostname-offsets${RUN}.log
+  ./linear <$hostname-offsets${RUN}.log >$hostname-linear${RUN}.log
+done
+
+echo graphs
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "inttemp${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'time${RUN}.log' using 1:(\$2/1000) title 'internal' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "volts${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.3f V" nomirror
+set y2tics format "%1.3f V" nomirror
+set title "Voltage"
+set key bottom left box
+plot \\
+    'time${RUN}.log' using 1:(\$3/1000) title '3.3V' with points, \\
+    'time${RUN}.log' using 1:(\$4/500) title '5V' with points axis x1y2
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'temps${RUN}.log' using 1:(\$2-40) title 'internal-40' with line, \\
+    'temps${RUN}.log' using 1:3 title 'thermistor' with line, \\
+    'temps${RUN}.log' using 1:4 title 'tmp36' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp12-${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'temps${RUN}.log' using 1:(\$2-\$3) title 'internal-thermistor' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp13-${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'temps${RUN}.log' using 1:(\$2-\$4) title 'internal-tmp36' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "temp23-${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f F" nomirror
+set title "Temperature"
+set key top right box
+plot \\
+    'temps${RUN}.log' using 1:(\$3-\$4) title 'thermistor-tmp36' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "offset${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ms" nomirror
+set title "offset of remote clocks"
+set key bottom right box
+plot \\
+    'stm32-offsets${RUN}.log' using 1:(\$3*1000+0.045*(\$1-${START})) title 'stm32 request' with line, \
+    'stm32-offsets${RUN}.log' using 1:(\$3*1000+0.045*(\$1-${START})+\$2*1000) title 'stm32 response' with line, \
+    'cheese-offsets${RUN}.log' using 1:(\$3*1000+0.045*(\$1-${START}))  title 'cheese request' with line, \
+    'cheese-offsets${RUN}.log' using 1:(\$3*1000+0.045*(\$1-${START})+\$2*1000) title 'cheese response' with line
+EOF
+
+#gnuplot <<EOF
+#set terminal png size 900,600
+#set xdata time
+#set timefmt "%s"
+#set output "jitter${RUN}.png"
+#set grid
+#set xlabel "Time"
+#set format x "%d-%H:%M"
+#set xtic rotate by -45 scale 0
+#set ylabel ""
+#set ytics format "%1.1f us" nomirror
+#set title "offset change from previous second"
+#set key bottom right box
+#plot \\
+#    'jitter${RUN}.log' using 1:(\$3*1000000) title 'jitter' with line
+#EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "rtt${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f us" nomirror
+set title "rtt of remote clocks"
+set key top left box
+plot \\
+    'stm32-offsets${RUN}.log' using 1:(\$2*1000000) title 'stm32' with line, \
+    'cheese-offsets${RUN}.log' using 1:(\$2*1000000) title 'cheese' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "proc${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.0f us" nomirror
+set title "proctime of remote clocks"
+set key top right box
+plot \\
+    'stm32-offsets${RUN}.log' using 1:(\$4*1000000) title 'stm32' with line, \
+    'cheese-offsets${RUN}.log' using 1:(\$4*1000000) title 'cheese' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "tx${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.2f us" nomirror
+set title "local software to hardware TX timestamp difference"
+set key top right box
+plot \\
+    'stm32-offsets${RUN}.log' using 1:(\$5*1000000) title 'local/stm32' with points, \
+    'cheese-offsets${RUN}.log' using 1:(\$5*1000000) title 'local/cheese' with points
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set output "linear${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "Linear best fit over 64s"
+set key top right box
+plot \\
+    'stm32-linear${RUN}.log' using 1:(\$4*1000000) title 'stm32' with line, \
+    'cheese-linear${RUN}.log' using 1:(\$4*1000000) title 'cheese' with line
+EOF
+
+cat <<EOF | gnuplot
+set terminal png size 900,600
+set output "linear-temp${RUN}.png"
+set grid
+set xlabel "Temperature"
+set format x "%1.1f F"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "Linear best fit over 64s vs Temperature"
+set key top right box
+plot \\
+    'stm32-linear${RUN}.log' using 10:(\$4*1000000) title 'stm32' with points, \
+    'cheese-linear${RUN}.log' using 10:(\$4*1000000) title 'cheese' with points
+EOF
+

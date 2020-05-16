@@ -1,0 +1,80 @@
+#!/bin/sh
+
+RUN=5-11-2020
+
+echo pps
+grep ^pps ${RUN}.log | ./pps >pps-${RUN}.log
+./linear --samples=8 --drop=8 --pps <pps-${RUN}.log >linear-${RUN}.log
+./join-pps --pps=pps-${RUN}.log --linear=linear-${RUN}.log >join-${RUN}.log
+./linear --samples=8 --drop=8 --ptp <join-${RUN}.log >ptp-${RUN}.log
+
+echo graphs
+
+gnuplot <<EOF
+set terminal png size 900,600
+set xdata time
+set timefmt "%s"
+set output "tim2-${RUN}.png"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.6f s" nomirror
+set title "offset between tim2/pps"
+set key top right box
+plot \\
+    'pps-${RUN}.log' using 1:(\$7-24.106009036+(\$1-1588817494)*0.001075465) title 'pps' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "linear-${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "Linear best fit over 32s"
+set key top right box
+plot \\
+    'linear-${RUN}.log' using 1:(\$4*1000000) title 'pps' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "join-${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f us" nomirror
+set title "Linear best fit over 32s"
+set key top right box
+plot \\
+    'join-${RUN}.log' using 1:(\$4*1000000) title 'remainder' with line
+EOF
+
+gnuplot <<EOF
+set terminal png size 900,600
+set output "ptp-${RUN}.png"
+set xdata time
+set timefmt "%s"
+set grid
+set xlabel "Time"
+set format x "%d-%H:%M"
+set xtic rotate by -45 scale 0
+set ylabel ""
+set ytics format "%1.1f ppm" nomirror
+set title "PTP clock error"
+set key top right box
+plot \\
+    'ptp-${RUN}.log' using 1:(\$4*1000000) title 'pps vs ptp' with line
+EOF
+

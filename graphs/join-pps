@@ -1,0 +1,35 @@
+#!/usr/bin/perl
+
+use strict;
+use Getopt::Long;
+
+my($ppsfile, $linearfile);
+GetOptions (
+    "pps=s" => \$ppsfile,
+    "linear=s" => \$linearfile,
+    ) or die("Error in command line arguments\n");
+
+if(not defined($ppsfile) or not defined($linearfile)) {
+  die("need both --pps and --linear");
+}
+
+open(PPSFILE, "<", $ppsfile) or die("$ppsfile failed: $!");
+open(LINEARFILE, "<", $linearfile) or die("$linearfile failed: $!");
+
+my $start;
+while(<LINEARFILE>) {
+  my(@linear) = split(/ /);
+  while(<PPSFILE>) {
+    my(@pps) = split(/ /);
+
+    $start = $pps[4] if not defined($start);
+
+# 1588817494 1 1 2108904759 25.106009036 231291 24.106009036 3797806294 25.103258381
+    my $time = $pps[4] - $start;
+    my $remainder = $pps[6] - $time * $linear[3] - $linear[4];
+    my $ptpoffset = ($pps[8] - $pps[4]) * (1 - $linear[3]);
+    printf("%u %u %.9f %.9f %.9f\n", $pps[0], $time, $linear[3], $remainder, $ptpoffset);
+
+    last if(int($time) == $linear[0]);
+  }
+}

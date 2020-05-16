@@ -1,0 +1,33 @@
+#!/usr/bin/perl
+
+use strict;
+
+my($now, $start);
+
+my $NTPTIME = 2208988800;
+my($wraps,$ptpwraps) = (0,0);
+my $freq = 84000000;
+my(@last);
+while(<>) {
+  my(@a) = split(/ /);
+  if(not defined($start)) {
+    $start = $a[5]-$NTPTIME;
+    $now = 0;
+  }
+  if(@last) {
+    my $difference = $a[1] - $last[1];
+    if($last[1] > $a[1]) {
+      $wraps += 2**32;
+      $difference += 2**32;
+    }
+    if($last[6] > $a[6]) { # TODO: missing wraps due to unscheduled ptp data
+      $ptpwraps += 2**32;
+    }
+    $difference = int($difference/$freq + 0.5);
+    $now += $difference;
+    my $counter = $a[1]+$wraps;
+    my $duration = $counter/$freq;
+    printf("%u %u %d %u %.9f %u %.9f %u %.9f\n", $start+$now, $now, $difference, $counter, $duration, $a[2], $duration-$now, $a[5], ($a[6]+$ptpwraps)/$freq);
+  }
+  @last = @a; 
+}
