@@ -82,7 +82,7 @@ static void compare_ptp() {
 
   PTPPID.add_sample(thisptp_cap, thisptp_seconds, offset);
 
-  int32_t newppb = (ClockPID.d_out() - PTPPID.p_out() - PTPPID.i_out()) * billion;
+  int32_t newppb = (ClockPID.out() - PTPPID.p_out() - PTPPID.i_out()) * billion;
 
   ptp_set_freq_div(newppb);
 
