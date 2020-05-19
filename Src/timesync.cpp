@@ -17,6 +17,7 @@ ClockPID_c ClockPID;
 ClockPID_c PTPPID;
 
 static bool time_set = false;
+static uint8_t ptp_time_set = 0;
 static uint32_t lastpps = 0;
 static uint32_t lastgpstime = 0;
 static const float billion = 1000000000.0;
@@ -68,6 +69,16 @@ static void compare_ptp() {
   last_ptp_seconds = thisptp_seconds;
 
   int64_t offset = localClock.getOffset(thisptp_cap, thisptp_seconds, 0);
+  if(time_set && ptp_time_set < 2) {
+    ptp_time_set++;
+    if(ptp_time_set == 2) {
+      ptp_update_subs(offset / -2);
+      write_uart_s("ptp init ");
+      write_uart_64i(offset);
+      write_uart_s("\n");
+    }
+    return;
+  }
 
   PTPPID.add_sample(thisptp_cap, thisptp_seconds, offset);
 
@@ -157,7 +168,7 @@ void time_sync() {
     ClockPID.add_sample(thispps, thisgpstime, offset);
 
     localClock.setRefTime(thisgpstime);
-    localClock.setPpb(ClockPID.out() * billion);
+    localClock.setPpb(thispps, ClockPID.out() * billion);
 
     write_uart_s("offset: ");
     // convert from NTP fraction to ns
@@ -176,6 +187,8 @@ void time_sync() {
     write_uart_u(pps_to_gps_ms);
     write_uart_s("\n");
   }
+
+  print_tim();
 }
 
 }
