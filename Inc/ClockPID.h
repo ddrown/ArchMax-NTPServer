@@ -1,11 +1,11 @@
 #pragma once
 
 #ifndef NTPPID_KP
-#define NTPPID_KP 0.001f
+#define NTPPID_KP 0.003f
 #endif
 
 #ifndef NTPPID_KI
-#define NTPPID_KI 0.001f
+#define NTPPID_KI 0.003f
 #endif
 
 #ifndef NTPPID_KD
