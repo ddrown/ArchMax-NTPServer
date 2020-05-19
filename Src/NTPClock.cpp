@@ -48,6 +48,7 @@ int64_t NTPClock::getOffset(uint32_t now, uint32_t ntpTimestamp, uint32_t ntpFra
 
 uint64_t NTPClock::countToNTP(uint32_t count) {
   uint64_t ntpFracPassed = (count - lastMicros_) * 4294967296LL / (uint64_t)COUNTSPERSECOND;
+  // this overflows at ~4s between count and lastmicros
   ntpFracPassed = ntpFracPassed * 1000000000LL / (1000000000LL - ppb_);
   return ntpTimestamp_.whole + ntpFracPassed;
 }
