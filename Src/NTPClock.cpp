@@ -22,14 +22,7 @@ uint8_t NTPClock::getTime(uint32_t now, uint32_t *ntpTimestamp, uint32_t *ntpFra
   if (!timeset_)
     return 0;
 
-  int64_t ntpFracPassed = (now - lastMicros_) * 4294967296LL / (int64_t)COUNTSPERSECOND;
-  int32_t ntpFracPassedDrift = ntpFracPassed * ppb_ / 1000000000LL;
-  ntpFracPassed += ntpFracPassedDrift;
-  temp_.whole = ntpTimestamp_.whole + ntpFracPassed;
-  if(ntpFracPassed >= 4294967296LL) { // every second
-    lastMicros_ = now;
-    ntpTimestamp_.whole = temp_.whole;
-  }
+  temp_.whole = countToNTP(now);
   if(ntpTimestamp != NULL)
     *ntpTimestamp = temp_.units[NTPCLOCK_SECONDS];
   if(ntpFractional != NULL)
@@ -53,9 +46,18 @@ int64_t NTPClock::getOffset(uint32_t now, uint32_t ntpTimestamp, uint32_t ntpFra
   return diffFS;
 }
 
+uint64_t NTPClock::countToNTP(uint32_t count) {
+  uint64_t ntpFracPassed = (count - lastMicros_) * 4294967296LL / (uint64_t)COUNTSPERSECOND;
+  ntpFracPassed = ntpFracPassed * 1000000000LL / (1000000000LL - ppb_);
+  return ntpTimestamp_.whole + ntpFracPassed;
+}
+
 // use + for local slower, - for local faster
-// can be set once per second
-void NTPClock::setPpb(int32_t ppb) {
+void NTPClock::setPpb(uint32_t now, int32_t ppb) {
+  // update clock using last ppb_ setting
+  ntpTimestamp_.whole = countToNTP(now);
+  lastMicros_ = now;
+
   if(ppb >= -2000000 && ppb <= 2000000) { // limited to +/-2000ppm
     ppb_ = ppb;
   }

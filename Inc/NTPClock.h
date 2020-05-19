@@ -13,7 +13,7 @@ class NTPClock {
     uint8_t getTime(uint32_t *ntpTimestamp, uint32_t *ntpFractional);
     uint8_t getTime(uint32_t now, uint32_t *ntpTimestamp, uint32_t *ntpFractional);
     int64_t getOffset(uint32_t now, uint32_t ntpTimestamp, uint32_t ntpFractional);
-    void setPpb(int32_t ppb);
+    void setPpb(uint32_t now, int32_t ppb);
     int32_t getPpb() { return ppb_; };
     uint32_t getReftime() { return refTime_; };
     void setRefTime(uint32_t refTime) { refTime_ = refTime; };
@@ -28,4 +28,6 @@ class NTPClock {
     } ntpTimestamp_, temp_;
     int32_t ppb_;
     uint32_t refTime_;
+
+    uint64_t countToNTP(uint32_t count);
 };
