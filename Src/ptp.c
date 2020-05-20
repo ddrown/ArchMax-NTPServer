@@ -68,9 +68,21 @@ void ptp_set_step(uint8_t step) {
   heth.Instance->PTPSSIR = step;
 }
 
+/*
+PTP_INCREMENT_DEFAULT=4223155695
+(4223155695+newcount)*168000000*(1-ppb) / (2^32) * 13/(2^31) = 1
+(4223155695+newcount) = (2^32*2^31)/((1-ppb)*168000000*13)
+newcount = (2^32*2^31)/((1-ppb)*168000000*13)-4223155695
+newcount = 983280058*2^32/(1000000000-ppb) - 4223155695
+*/
 void ptp_set_freq_div(int32_t ppb) {
-  // 6334733 counts per 1500000ppb
-  int32_t newcount = ppb * 4.223155333333f;
+  int32_t newcount = 4223155691918983168LL/(1000000000-ppb) - 4223155695LL;
+  // limit to +2000ppm
+  if(newcount > 8463237)
+    newcount = 8463237;
+  // limit to -2000ppm
+  if(newcount < -8429452)
+    newcount = -8429452;
   heth.Instance->PTPTSAR = newcount + PTP_INCREMENT_DEFAULT;
   while(heth.Instance->PTPTSCR & ETH_PTPTSCR_TSARU_Msk) { // wait for ARU to clear
     // TODO: timeout
