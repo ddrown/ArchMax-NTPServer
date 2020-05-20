@@ -20,6 +20,7 @@ static bool time_set = false;
 static uint8_t ptp_time_set = 0;
 static uint32_t lastpps = 0;
 static uint32_t lastgpstime = 0;
+static int64_t last_local_offset = 0;
 static const float billion = 1000000000.0;
 
 const DateTime compile = DateTime(__DATE__, __TIME__);
@@ -69,6 +70,7 @@ static void compare_ptp() {
   last_ptp_seconds = thisptp_seconds;
 
   int64_t offset = localClock.getOffset(thisptp_cap, thisptp_seconds, 0);
+  offset -= last_local_offset;
   if(time_set && ptp_time_set < 2) {
     ptp_time_set++;
     if(ptp_time_set == 2) {
@@ -76,13 +78,15 @@ static void compare_ptp() {
       write_uart_s("ptp init ");
       write_uart_64i(offset);
       write_uart_s("\n");
+      PTPPID.set_kp(0.006);
+      PTPPID.set_ki(0.006);
     }
     return;
   }
 
   PTPPID.add_sample(thisptp_cap, thisptp_seconds, offset);
 
-  int32_t newppb = (ClockPID.out() - PTPPID.p_out() - PTPPID.i_out()) * billion;
+  int32_t newppb = (ClockPID.d_out() - PTPPID.p_out() - PTPPID.i_out()) * billion;
 
   ptp_set_freq_div(newppb);
 
@@ -164,6 +168,7 @@ void time_sync() {
     write_uart_s("\n");
   } else {
     int64_t offset = localClock.getOffset(thispps, thisgpstime, 0);
+    last_local_offset = offset;
 
     ClockPID.add_sample(thispps, thisgpstime, offset);
 
