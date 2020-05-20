@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef NTPPID_KP
-#define NTPPID_KP 0.003f
+#define NTPPID_KP 0.1f
 #endif
 
 #ifndef NTPPID_KI
@@ -13,7 +13,7 @@
 #endif
 
 // 51 seconds between counter wraps at 84MHz
-#define NTPPID_MAX_COUNT 8
+#define NTPPID_MAX_COUNT 16
 
 extern "C" {
   struct deriv_calc {

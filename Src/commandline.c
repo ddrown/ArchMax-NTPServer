@@ -36,7 +36,7 @@ static void print_help() {
   "getntp - get ntp time\n"
   "ntpoffset - get current offset\n"
   "gps - show current gps time\n"
-  "pid [p/i/d] [millionth] - set P/I/D constant\n"
+  "pid [p/i/d/P/I/D] [millionth] - set P/I/D constant\n"
   );
 }
 

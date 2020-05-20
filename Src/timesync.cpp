@@ -28,26 +28,41 @@ const DateTime compile = DateTime(__DATE__, __TIME__);
 extern "C" {
 
 void show_pid() {
-  write_uart_s("P=");
+  write_uart_s("[TIM2] P=");
   write_uart_u(ClockPID.get_kp()*1000000.0f);
   write_uart_s(" I=");
   write_uart_u(ClockPID.get_ki()*1000000.0f);
   write_uart_s(" D=");
   write_uart_u(ClockPID.get_kd()*1000000.0f);
+  write_uart_s("[PTP] P=");
+  write_uart_u(PTPPID.get_kp()*1000000.0f);
+  write_uart_s(" I=");
+  write_uart_u(PTPPID.get_ki()*1000000.0f);
+  write_uart_s(" D=");
+  write_uart_u(PTPPID.get_kd()*1000000.0f);
   write_uart_s("\n");
 }
 
 void set_pid_constant(char type, uint32_t millionth) {
   float newvalue = millionth / 1000000.0f;
-  switch(toupper(type)) {
-    case 'P':
+  switch(type) {
+    case 'p':
       ClockPID.set_kp(newvalue);
       break;
-    case 'I':
+    case 'i':
       ClockPID.set_ki(newvalue);
       break;
-    case 'D':
+    case 'd':
       ClockPID.set_kd(newvalue);
+      break;
+    case 'P':
+      PTPPID.set_kp(newvalue);
+      break;
+    case 'I':
+      PTPPID.set_ki(newvalue);
+      break;
+    case 'D':
+      PTPPID.set_kd(newvalue);
       break;
     default:
       write_uart_s("unknown type ");
@@ -78,7 +93,7 @@ static void compare_ptp() {
       write_uart_s("ptp init ");
       write_uart_64i(offset);
       write_uart_s("\n");
-      PTPPID.set_kp(0.006);
+      PTPPID.set_kp(1);
       PTPPID.set_ki(0.006);
     }
     return;
@@ -192,8 +207,6 @@ void time_sync() {
     write_uart_u(pps_to_gps_ms);
     write_uart_s("\n");
   }
-
-  print_tim();
 }
 
 }
