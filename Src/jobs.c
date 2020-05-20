@@ -23,6 +23,7 @@ static const struct jobdefs {
   { .jobtype= ADC_POLL,       .tick= 200, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 300, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 400, .args= 0 },
+  { .jobtype= PTP_SET_TARGET, .tick= 450, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 500, .args= 0 },
   { .jobtype= NTP_POLL,       .tick= 550, .args= 1 },
   { .jobtype= ADC_POLL,       .tick= 600, .args= 0 },
@@ -30,8 +31,8 @@ static const struct jobdefs {
   { .jobtype= ADC_POLL,       .tick= 700, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 800, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 900, .args= 0 },
-  { .jobtype= UPDATE_ADC,     .tick= 900, .args= 0 },
-  { .jobtype= PTP_SET_TARGET, .tick= 901, .args= 0 },
+  { .jobtype= UPDATE_ADC,     .tick= 901, .args= 0 },
+  { .jobtype= PTP_SET_TARGET, .tick= 950, .args= 0 },
   { .jobtype= ENDJOB,         .tick= 999, .args= 0 },
 };
 

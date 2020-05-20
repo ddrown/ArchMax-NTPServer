@@ -230,7 +230,7 @@ void ptp_set_target() {
   }
 
   if(heth.Instance->PTPTSLR > 2000000000) {
-    seconds++; // allow at least 68 ms
+    return; // don't schedule one near the end of a second
   }
   seconds += heth.Instance->PTPTSHR;
   heth.Instance->PTPTTHR = seconds;
