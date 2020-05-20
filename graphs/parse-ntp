@@ -5,8 +5,13 @@ use strict;
 my(%last);
 while(<>) {
   # IP         T rtt    rxs        rxsub      txs        txsub      ends       endsub     o offsu Ts         Tsub      temp   T-start
-  if(/^[0-9.]+ I [0-9]+ ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) [0-9]+ [0-9]+ ([0-9]+) ([0-9]+) [0-9]+ [0-9]+$/) {
-    my($rxservs,$rxservsub,$txservs,$txservsub,$rxlocals,$rxlocalsub,$txlocals,$txlocalsub) = ($1,$2,$3,$4,$5,$6,$7,$8);
+  if(/^[0-9.]+ I [0-9]+ ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+) [0-9]+ [0-9]+ ([0-9]+) ([0-9]+) [0-9]+ ([0-9]+)$/) {
+    my($rxservs,$rxservsub,$txservs,$txservsub,$rxlocals,$rxlocalsub,$txlocals,$txlocalsub,$tdelay) = ($1,$2,$3,$4,$5,$6,$7,$8,$9);
+    if(($txlocals == 0 and $txlocalsub == 0) or ($tdelay > 120000)) {
+      # there was a problem with the tx timestamp
+      %last = ();
+      next;
+    }
     my $rxserv = $rxservs << 32;
     $rxserv += $rxservsub;
     my $txserv = $txservs << 32;
@@ -21,7 +26,11 @@ while(<>) {
       my $rxdiff = -1 * ($txserv-$last{rxlocal}) / 2**32 * 1e9;
       my $rtt = $rxdiff - $txdiff;
       my $offset = $txdiff + $rtt/2;
-      printf("%u %d %d %d %d\n", $last{s}, $txdiff, $rxdiff, $rtt, $offset);
+      if($rtt < 0) {
+        printf STDERR ("negative rtt t=%u rtt=%d\n", $last{s}, $rtt);
+      } else {
+        printf("%u %d %d %d %d\n", $last{s}, $txdiff, $rxdiff, $rtt, $offset);
+      }
     }
 
     %last = (
@@ -31,5 +40,8 @@ while(<>) {
       rxlocal => $rxlocal,
       txlocal => $txlocal
 	);
+  } else {
+    # couldn't parse this line, start client over
+    %last = ();
   }
 }
