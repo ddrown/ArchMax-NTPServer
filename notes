@@ -144,6 +144,12 @@ NTP: 48 bytes
 Ethernet CRC (FCS): 4 bytes
 Ethernet IPG: 12 bytes
 
+RX delay:
+T2.25.3: JK symbol -> CRS DV = 18.5 bits
+18.5/100000000 = .000000185
+T2.25.5: RXD[1:0] latency from symbol on receive pair = 38 bits (default elasticisty of 4 bits)
+38/100000000   = .000000380
+
 114*8
 =912 bits
 
