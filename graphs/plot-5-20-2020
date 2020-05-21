@@ -1,12 +1,12 @@
 #!/bin/sh
 
-RUN=5-19-2020
+RUN=5-20-2020
 STARTTIME=1589949339
 
 for i in offset ptp; do
   echo $i
   if [ \! -f $i-${RUN}.log -o ${RUN}.log -nt $i-${RUN}.log ]; then
-    grep -a ^$i: ${RUN}.log | ./parse-offset | awk '($1 > '$STARTTIME' && ($1 < 1591904849 || $1 > 1591904853)) { print }' >$i-${RUN}.log
+    grep -a ^$i: ${RUN}.log | ./parse-offset | awk '($1 > '$STARTTIME') { print }' >$i-${RUN}.log
   fi
   if [ \! -f $i-${RUN}.history -o $i-${RUN}.log -nt $i-${RUN}.history ]; then
     ./histogram 1 1 <$i-${RUN}.log >$i-${RUN}.history
