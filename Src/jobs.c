@@ -8,8 +8,9 @@
 #include "ptp.h"
 #include "timer.h"
 #include "timesync.h"
+#include "ethernetif.h"
 
-enum jobids {NTP_POLL, ADC_POLL, UPDATE_ADC, PTP_SET_TARGET, PRINT_TIME, TIME_SYNC, ENDJOB};
+enum jobids {NTP_POLL, ADC_POLL, UPDATE_ADC, PTP_SET_TARGET, PRINT_TIME, TIME_SYNC, SCAN_TX_TS, ENDJOB};
 
 static const struct jobdefs {
   enum jobids jobtype;
@@ -19,6 +20,7 @@ static const struct jobdefs {
   { .jobtype= NTP_POLL,       .tick=   0, .args= 0 },
   { .jobtype= ADC_POLL,       .tick=   0, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 100, .args= 0 },
+  { .jobtype= SCAN_TX_TS,     .tick= 101, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 150, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 200, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 300, .args= 0 },
@@ -27,6 +29,7 @@ static const struct jobdefs {
   { .jobtype= ADC_POLL,       .tick= 500, .args= 0 },
   { .jobtype= NTP_POLL,       .tick= 550, .args= 1 },
   { .jobtype= ADC_POLL,       .tick= 600, .args= 0 },
+  { .jobtype= SCAN_TX_TS,     .tick= 650, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 650, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 700, .args= 0 },
   { .jobtype= ADC_POLL,       .tick= 800, .args= 0 },
@@ -55,6 +58,10 @@ static void runjob(uint8_t job) {
       break;
     case TIME_SYNC:
       time_sync();
+      break;
+    case SCAN_TX_TS:
+      // check for TX timestamps if the RX previously timed out
+      ethernetif_scan_tx_timestamps();
       break;
     case ENDJOB:
       break;
