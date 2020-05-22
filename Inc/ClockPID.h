@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef NTPPID_KP
-#define NTPPID_KP 0.1f
+#define NTPPID_KP 1.0f
 #endif
 
 #ifndef NTPPID_KI
