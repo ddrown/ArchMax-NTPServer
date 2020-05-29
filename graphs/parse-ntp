@@ -1,6 +1,40 @@
 #!/usr/bin/perl
 
 use strict;
+use Getopt::Long;
+
+my($adjust1G, $adjustRX);
+# from DP83848J datasheet, T2.25.5
+# RXD[1:0] latency from symbol on receive pair = 38 bits
+# (default elasticisty of 4 bits)
+my $rxcomp = 1632; # in NTP fractional seconds
+my $txcomp = 730;  # in NTP fractional seconds
+GetOptions(
+    "adjust-1G" => \$adjust1G,
+    "adjust-rx" => \$adjustRX,
+    "adjust-rx-at=i" => \$adjustRX,
+    "rx-comp=i" => \$rxcomp,
+    "tx-comp=i" => \$txcomp
+    ) or die("Error in command line arguments\n");
+
+sub adjust {
+  my($this_sample) = @_;
+
+  if($adjust1G or ($adjustRX > 0 and $adjustRX < $this_sample->{s})) {
+    $this_sample->{rxlocal} += 32298; # 752 bits at 100M
+  }
+  if($adjust1G) {
+    $this_sample->{rxserv} += 3229;   # 752 bits at 1G
+  }
+
+  if($txcomp) {
+    $this_sample->{txlocal} += $txcomp;
+  }
+
+  if($rxcomp) {
+    $this_sample->{rxlocal} -= $rxcomp;
+  }
+}
 
 my(%last);
 while(<>) {
@@ -12,18 +46,18 @@ while(<>) {
       %last = ();
       next;
     }
-    my $rxserv = $rxservs << 32;
-    $rxserv += $rxservsub;
-    my $txserv = $txservs << 32;
-    $txserv += $txservsub;
-    my $rxlocal = $rxlocals << 32;
-    $rxlocal += $rxlocalsub << 1;
-    my $txlocal = $txlocals << 32;
-    $txlocal += $txlocalsub << 1;
 
+    my %this_sample = (
+      s => $rxservs - 2208988800,
+      rxserv => ($rxservs << 32) + $rxservsub,
+      txserv => ($txservs << 32) + $txservsub,
+      rxlocal => ($rxlocals << 32) + ($rxlocalsub << 1),
+      txlocal => ($txlocals << 32) + ($txlocalsub << 1)
+	);
+    adjust(\%this_sample);
     if(%last) {
       my $txdiff = ($last{txlocal}-$last{rxserv}) / 2**32 * 1e9;
-      my $rxdiff = -1 * ($txserv-$last{rxlocal}) / 2**32 * 1e9;
+      my $rxdiff = -1 * ($this_sample{txserv}-$last{rxlocal}) / 2**32 * 1e9;
       my $rtt = $rxdiff - $txdiff;
       my $offset = $txdiff + $rtt/2;
       if($rtt < 0) {
@@ -33,13 +67,7 @@ while(<>) {
       }
     }
 
-    %last = (
-      s => $rxservs - 2208988800,
-      rxserv => $rxserv,
-      txserv => $txserv,
-      rxlocal => $rxlocal,
-      txlocal => $txlocal
-	);
+    %last = %this_sample;
   } else {
     # couldn't parse this line, start client over
     %last = ();
