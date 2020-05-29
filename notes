@@ -140,15 +140,11 @@ Ethernet header: 14 bytes
 IP header: 20 bytes
 UDP header: 8 bytes
 NTP: 48 bytes
-- driver timestamp reference-ish + interrupt latency
 Ethernet CRC (FCS): 4 bytes
+- NTP timestamp reference
 Ethernet IPG: 12 bytes
 
-RX delay:
-T2.25.3: JK symbol -> CRS DV = 18.5 bits
-18.5/100000000 = .000000185
-T2.25.5: RXD[1:0] latency from symbol on receive pair = 38 bits (default elasticisty of 4 bits)
-38/100000000   = .000000380
+RX adjust = .000000752 @ 1G
 
 114*8
 =912 bits
@@ -278,3 +274,54 @@ try using 2k dividers?
 // was used for BME280
     PB8     ------> I2C1_SCL
     PB9     ------> I2C1_SDA
+
+
+eth_pps_out
+PB5 -- R1:7
+
+
+
+1G/100M asymmetry
+
+Ethernet Preamble: 7 bytes
+Ethernet SFD: 1 byte
+- 1588 timestamp reference
+Ethernet header: 14 bytes
+IP header: 20 bytes
+UDP header: 8 bytes
+NTP: 48 bytes
+Ethernet CRC (FCS): 4 bytes
+
+752 bits (body)
+64 bits (header)
+46+48
+
+100M -> 1G
+7520 ns + 64 ns = 7584 ns
+1G -> 100M
+752 ns + 640 ns = 1392 ns
+
+difference: 6192 ns
+would be an offset of: 3096 ns
+
+
+PHY asymmetry:
+[archmax] DP83848J - http://www.ti.com/lit/ds/symlink/dp83848j.pdf
+
+RX delay:
+T2.25.3: JK symbol -> CRS DV = 18.5 bits
+18.5/100000000 = .000000185
+T2.25.5: RXD[1:0] latency from symbol on receive pair = 38 bits (default elasticisty of 4 bits)
+38/100000000   = .000000380
+
+
+TX delay:
+T2.24.4 X1 Clock to PMD Output Pair Latency From X1 Rising edge to first bit of symbol = 17 bits
+17/100M          = 0.000000170
+
+[stm32mp1] RTL8211F-CG https://datasheet.lcsc.com/szlcsc/1909021205_Realtek-Semicon-RTL8211F-CG_C187932.pdf
+Table 60. RGMII Timing Parameters
+TsetupT - Data to Clock Output Setup Time at transmitter	typ:2 ns
+TholdT  - Clock to Data Output Hold Time at transmitter		typ:2 ns
+TsetupR - Data to Clock Input Setup Time at receiver		typ:2 ns
+TholdR  - Clock to Data Input Hold Time at receiver		typ:2 ns
