@@ -1,4 +1,4 @@
-Hardware: Seeed's Arch Max with STM32F407 + 100M ethernet
+Hardware: Seeed's Arch Max with STM32F407 + 100M ethernet, GPS module with PPS out
 
 Software: built on STM32CubeMX + LwIP
 
