@@ -5,7 +5,6 @@
 #include "ptp.h"
 #include "ping.h"
 #include "ntp.h"
-#include "adc.h"
 #include "timer.h"
 #include "NTPClockCMD.h"
 #include "GPS.h"
@@ -21,7 +20,6 @@ static void print_help() {
   "phy - show PHY state\n"
   "blink - blink LED\n"
   "ping [ip] - ping ip\n"
-  "ntppoll [0/1] - poll every second\n"
   "ptp - ptp status\n"
   "target - set ptp target time\n"
   "count - ptp counters\n"
@@ -29,7 +27,6 @@ static void print_help() {
   "freqdiv [32bit] - change subsecond freq div\n"
   "sec [32bit] - change seconds\n"
   "subs [32bit] - change sub seconds\n"
-  "adc - display internal temp and voltage\n"
   "help - print help\n"
   "tim - print timer state\n"
   "setntp - set ntp timer\n"
@@ -122,9 +119,6 @@ static void run_command(char *cmdline) {
     ptp_counters();
   } else if(strncmp("ping ", cmdline, 5) == 0) {
     ping_send(cmdline+5);
-  } else if(strncmp("ntppoll ", cmdline, 8) == 0) {
-    uint8_t active = atoi(cmdline+8);
-    ntp_poll_set(active);
   } else if(strncmp("step ", cmdline, 5) == 0) {
     uint8_t step = atoi(cmdline+5);
     ptp_set_step(step);
@@ -137,9 +131,6 @@ static void run_command(char *cmdline) {
   } else if(strncmp("subs ", cmdline, 5) == 0) {
     int32_t subs = atol(cmdline+5);
     ptp_update_subs(subs);
-  } else if(strcmp("adc", cmdline) == 0) {
-    print_last_vcc();
-    print_last_temp();
   } else if(strcmp("tim", cmdline) == 0) {
     print_tim();
   } else if(strcmp("setntp", cmdline) == 0) {

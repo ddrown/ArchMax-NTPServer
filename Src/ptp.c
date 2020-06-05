@@ -190,15 +190,24 @@ void ptp_status() {
 }
 
 void ptp_timestamp(struct timestamp *now) {
-  now->seconds = heth.Instance->PTPTSHR;
+  uint32_t s1, s2;
+
+  s1 = heth.Instance->PTPTSHR;
   now->subseconds = heth.Instance->PTPTSLR;
+  s2 = heth.Instance->PTPTSHR;
+
+  // if the timestamp read happened within 10ms of a counter rollover, use the next second
+  if(now->seconds != s2 && now->subseconds < 21474836) {
+    now->seconds = s2;
+  } else {
+    now->seconds = s1;
+  }
 }
 
 uint64_t ptp_now() {
   struct timestamp now;
 
-  now.seconds = heth.Instance->PTPTSHR;
-  now.subseconds = heth.Instance->PTPTSLR;
+  ptp_timestamp(&now);
 
   return (uint64_t)now.seconds << 32 | now.subseconds << 1;
 }

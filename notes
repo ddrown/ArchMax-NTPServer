@@ -304,6 +304,13 @@ Ethernet CRC (FCS): 4 bytes
 difference: 6192 ns
 would be an offset of: 3096 ns
 
+100M round trip time:
+1504 bits
+.000015040
+
+1G round trip time:
+1504 bits
+.000001504
 
 PHY asymmetry:
 [archmax] DP83848J - http://www.ti.com/lit/ds/symlink/dp83848j.pdf

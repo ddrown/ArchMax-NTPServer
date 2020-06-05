@@ -174,9 +174,14 @@ struct pbuf {
   u16_t ref;
 
   // RX timestamp
-  u32_t timestamp_seconds;
-  u32_t timestamp_subseconds;
+  union {
+    u32_t parts[2];
+    uint64_t whole;
+  } ts;
 };
+// arm is little endian
+#define TS_POS_S 1
+#define TS_POS_SUBS 0
 
 
 /** Helper struct for const-correctness only.

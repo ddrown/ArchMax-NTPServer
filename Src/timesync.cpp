@@ -105,6 +105,7 @@ static void compare_ptp() {
 
   ptp_set_freq_div(newppb);
 
+#ifdef DEBUG_SERIAL
   write_uart_s("ptp: ");
   write_uart_64i(offset);
   write_uart_s(" P=");
@@ -118,6 +119,7 @@ static void compare_ptp() {
   write_uart_s(" T=");
   write_uart_u(thisptp_seconds);
   write_uart_s("\n");
+#endif
 }
 
 void time_sync() {
@@ -190,6 +192,7 @@ void time_sync() {
     localClock.setRefTime(thisgpstime);
     localClock.setPpb(thispps, ClockPID.out() * billion);
 
+#ifdef DEBUG_SERIAL
     write_uart_s("offset: ");
     // convert from NTP fraction to ns
     write_uart_64i(offset * 1000000000LL / 4294967296LL);
@@ -206,6 +209,7 @@ void time_sync() {
     write_uart_s(" delay ");
     write_uart_u(pps_to_gps_ms);
     write_uart_s("\n");
+#endif
   }
 }
 

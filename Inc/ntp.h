@@ -1,8 +1,4 @@
-#ifndef NTP_H
-#define NTP_H
+#pragma once
 
+void TXTimestampCallback(uint32_t TimeStampLow, uint32_t TimeStampHigh);
 void ntp_init();
-void ntp_poll(uint8_t dest);
-void ntp_poll_set(uint8_t active);
-
-#endif // NTP_H

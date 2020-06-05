@@ -37,8 +37,8 @@ static unsigned char ping_recv(void *arg, struct raw_pcb *pcb, struct pbuf *p, c
     return 0;
   }
 
-  end_ping.seconds = p->timestamp_seconds;
-  end_ping.subseconds = p->timestamp_subseconds;
+  end_ping.seconds = p->ts.parts[TS_POS_S];
+  end_ping.subseconds = p->ts.parts[TS_POS_SUBS];
 
   write_uart_s("rtt ");
   write_uart_u(ptp_ns_diff(&start_ping, &end_ping));

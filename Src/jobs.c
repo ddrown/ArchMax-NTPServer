@@ -4,57 +4,32 @@
 #include "uart.h"
 #include "commandline.h"
 #include "ntp.h"
-#include "adc.h"
 #include "ptp.h"
 #include "timer.h"
 #include "timesync.h"
 #include "ethernetif.h"
 
-enum jobids {NTP_POLL, ADC_POLL, UPDATE_ADC, PTP_SET_TARGET, PRINT_TIME, TIME_SYNC, SCAN_TX_TS, ENDJOB};
+enum jobids {STARTJOB, PTP_SET_TARGET, TIME_SYNC, SCAN_TX_TS, ENDJOB};
 
 static const struct jobdefs {
   enum jobids jobtype;
   uint16_t tick;
   uint8_t args;
 } jobs[] = {
-  { .jobtype= NTP_POLL,       .tick=   0, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick=   0, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 100, .args= 0 },
-  { .jobtype= SCAN_TX_TS,     .tick= 101, .args= 0 },
+  { .jobtype= STARTJOB,       .tick=   0, .args= 0 },
+  { .jobtype= SCAN_TX_TS,     .tick=  10, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 150, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 200, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 300, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 400, .args= 0 },
   { .jobtype= PTP_SET_TARGET, .tick= 450, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 500, .args= 0 },
-  { .jobtype= NTP_POLL,       .tick= 550, .args= 1 },
-  { .jobtype= ADC_POLL,       .tick= 600, .args= 0 },
   { .jobtype= SCAN_TX_TS,     .tick= 650, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 650, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 700, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 800, .args= 0 },
-  { .jobtype= ADC_POLL,       .tick= 900, .args= 0 },
-  { .jobtype= UPDATE_ADC,     .tick= 901, .args= 0 },
   { .jobtype= PTP_SET_TARGET, .tick= 950, .args= 0 },
   { .jobtype= ENDJOB,         .tick= 999, .args= 0 },
 };
 
 static void runjob(uint8_t job) {
   switch(jobs[job].jobtype) {
-    case NTP_POLL:
-      ntp_poll(jobs[job].args);
-      break;
-    case ADC_POLL:
-      adc_poll();
-      break;
-    case UPDATE_ADC:
-      update_adc();
-      break;
     case PTP_SET_TARGET:
       ptp_set_target();
-      break;
-    case PRINT_TIME:
-      print_tim();
       break;
     case TIME_SYNC:
       time_sync();
@@ -63,6 +38,7 @@ static void runjob(uint8_t job) {
       // check for TX timestamps if the RX previously timed out
       ethernetif_scan_tx_timestamps();
       break;
+    case STARTJOB:
     case ENDJOB:
       break;
   }

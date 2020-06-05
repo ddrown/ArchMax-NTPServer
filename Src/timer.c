@@ -13,9 +13,6 @@ uint32_t get_counters() {
 }
 
 void timer_start() {
-  // runs the ADC
-  HAL_TIM_Base_Start(&htim3);
-
   pps_capture.events = 0;
   HAL_TIM_Base_Start(&htim2);
   HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_4);

@@ -62,9 +62,7 @@ Src/lwip.c \
 Src/ethernetif.c \
 Src/ping.c \
 Src/ptp.c \
-Src/ntp.c \
 Src/int64.c \
-Src/adc.c \
 Src/timer.c \
 Src/jobs.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_eth.c \
@@ -115,8 +113,6 @@ Middlewares/Third_Party/LwIP/src/core/ipv6/mld6.c \
 Middlewares/Third_Party/LwIP/src/core/ipv6/nd6.c \
 Middlewares/Third_Party/LwIP/src/apps/mqtt/mqtt.c \
 Middlewares/Third_Party/LwIP/src/apps/sntp/sntp.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.c \
-Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c_ex.c
 
@@ -126,7 +122,9 @@ Src/DateTime.cpp \
 Src/GPS.cpp \
 Src/GPSDateTime.cpp \
 Src/timesync.cpp \
-Src/ClockPID.cpp
+Src/ClockPID.cpp \
+Src/ntp.cpp \
+Src/NTPServer.cpp
 
 # ASM sources
 ASM_SOURCES =  \
