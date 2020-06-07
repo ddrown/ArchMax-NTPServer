@@ -22,7 +22,10 @@ NTPServer server;
 // adjusting from preamble timestamp to trailer timestamp: 752 bits at 100M
 #define RX_TRAILER 32298
 
-void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const struct ip_addr *addr, u16_t port) {
+// adjusting for 375ns offset
+#define RX_OFFSET_ADJUST 3221
+
+void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const struct ip_addr *addr, uint16_t port) {
   union {
     uint32_t parts[2];
     uint64_t whole;
@@ -46,8 +49,17 @@ void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const 
 
   response->mode = NTP_MODE_SERVER;
   response->version = NTP_VERS_4;
-  response->leap = NTP_LEAP_NONE; // TODO: no leap second support
-  response->stratum = 1;
+  if(reftime == 0 || dispersion.s32 > 0x10000) {
+    // no sync or dispersion over 1s
+    response->stratum = 16;
+    response->ident = 0;
+    response->leap = NTP_LEAP_UNSYNC;
+  } else {
+    response->stratum = 1;
+    response->ident = htonl(0x50505300); // "PPS"
+    response->leap = NTP_LEAP_NONE; // TODO: no leap second support
+  }
+  response->poll = request->poll;
   if(response->poll < 6) {
     response->poll = 6;
   }
@@ -55,18 +67,17 @@ void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const 
     response->poll = 12;
   }
   response->precision = -27; // 168MHz
-  response->root_delay = 0; // TODO
-  response->root_delay_fb = 0; // TODO
-  response->dispersion = 0; // TODO
-  response->dispersion_fb = 0; // TODO
-  response->ident = htonl(0x50505300); // "PPS"
-  response->ref_time = htonl(request_buf->ts.parts[TS_POS_S]); // TODO
+  response->root_delay = 0;
+  response->root_delay_fb = 0;
+  response->dispersion = htons(dispersion.s16[TS_POS_S]);
+  response->dispersion_fb = htons(dispersion.s16[TS_POS_SUBS]);
+  response->ref_time = htonl(reftime);
   response->ref_time_fb = 0;
   response->org_time = request->trans_time;
   response->org_time_fb = request->trans_time_fb;
 
   request_buf->ts.parts[TS_POS_SUBS] *= 2; // PTP clock runs at 2^31
-  request_buf->ts.whole += RX_TRAILER - RX_PHY;
+  request_buf->ts.whole += RX_TRAILER - RX_PHY - RX_OFFSET_ADJUST;
   response->recv_time = htonl(request_buf->ts.parts[TS_POS_S]);
   response->recv_time_fb = htonl(request_buf->ts.parts[TS_POS_SUBS]);
 
@@ -95,6 +106,16 @@ static void ntp_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p, const struc
 
 NTPServer::NTPServer() {
   ntp_pcb = NULL;
+  dispersion.s32 = 0xffffffff;
+  reftime = 0;
+}
+
+void NTPServer::setReftime(uint32_t newRef) {
+  reftime = newRef;
+}
+
+void NTPServer::setDispersion(uint32_t newDispersion) {
+  dispersion.s32 = newDispersion;
 }
 
 void NTPServer::setup() {

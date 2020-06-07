@@ -12,6 +12,7 @@ extern "C" {
 #include "NTPClock.h"
 #include "NTPClockCMD.h"
 #include "ClockPID.h"
+#include "NTPServer.h"
 
 ClockPID_c ClockPID;
 ClockPID_c PTPPID;
@@ -74,18 +75,62 @@ void set_pid_constant(char type, uint32_t millionth) {
   show_pid();
 }
 
+#define PTP_OFFSET_HISTORY_MAX 60
+static int64_t ptp_offset_history[PTP_OFFSET_HISTORY_MAX];
+static uint8_t ptp_offset_len = 0;
+static void add_ptp_history(int64_t offset) {
+  if(ptp_offset_len == PTP_OFFSET_HISTORY_MAX) {
+    for(uint8_t i = 0; i < PTP_OFFSET_HISTORY_MAX-1; i++) {
+      ptp_offset_history[i] = ptp_offset_history[i+1];
+    }
+    ptp_offset_len--;
+  }
+  ptp_offset_history[ptp_offset_len] = offset;
+  ptp_offset_len++;
+}
+
+static int64_t max_ptp_history() {
+  if(ptp_offset_len == 0) {
+    return 0;
+  }
+  int64_t max = ptp_offset_history[0];
+  for(uint8_t i = 1; i < ptp_offset_len; i++) {
+    if(ptp_offset_history[i] > max)
+      max = ptp_offset_history[i];
+  }
+  return max;
+}
+
+static uint32_t ntp64_to_32(int64_t offset) {
+  if(offset < 0)
+    offset *= -1;
+  // take 16bits off the bottom and top
+  offset = offset >> 16;
+  return offset & 0xffffffff;
+}
+
 static uint32_t last_ptp_seconds = 0;
 static void compare_ptp() {
   uint32_t thisptp_seconds = pps_capture.ptp_seconds;
   uint32_t thisptp_cap = pps_capture.ptp_cap;
+  uint32_t dispersion_adjust = 0;
 
   if(thisptp_seconds == last_ptp_seconds) {
     return;
   }
   last_ptp_seconds = thisptp_seconds;
 
+  // have we been without a gps PPS for longer than 1 second?
+  if(thisptp_seconds > lastgpstime+1) {
+    // estimate: 1us/s of drift
+    dispersion_adjust = (thisptp_seconds - lastgpstime) / 15;
+  }
+
   int64_t offset = localClock.getOffset(thisptp_cap, thisptp_seconds, 0);
   offset -= last_local_offset;
+
+  add_ptp_history(offset);
+
   if(time_set && ptp_time_set < 2) {
     ptp_time_set++;
     if(ptp_time_set == 2) {
@@ -98,6 +143,8 @@ static void compare_ptp() {
     }
     return;
   }
+
+  server.setDispersion(dispersion_adjust + ntp64_to_32(max_ptp_history()));
 
   PTPPID.add_sample(thisptp_cap, thisptp_seconds, offset);
 
@@ -189,7 +236,7 @@ void time_sync() {
 
     ClockPID.add_sample(thispps, thisgpstime, offset);
 
-    localClock.setRefTime(thisgpstime);
+    server.setReftime(thisgpstime);
     localClock.setPpb(thispps, ClockPID.out() * billion);
 
 #ifdef DEBUG_SERIAL

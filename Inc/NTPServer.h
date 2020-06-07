@@ -42,11 +42,18 @@ extern "C" {
 class NTPServer {
   public:
     NTPServer();
-    void recv(struct pbuf *request_buf, struct pbuf *response_buf, const struct ip_addr *addr, u16_t port);
+    void recv(struct pbuf *request_buf, struct pbuf *response_buf, const struct ip_addr *addr, uint16_t port);
     void setup();
+    void setDispersion(uint32_t newDispersion);
+    void setReftime(uint32_t newRef);
 
   private:
     struct udp_pcb *ntp_pcb;
+    union {
+      uint16_t s16[2];
+      uint32_t s32;
+    } dispersion;
+    uint32_t reftime;
 };
 
 extern NTPServer server;
