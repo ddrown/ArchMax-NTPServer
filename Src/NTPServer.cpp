@@ -60,9 +60,6 @@ void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const 
     response->leap = NTP_LEAP_NONE; // TODO: no leap second support
   }
   response->poll = request->poll;
-  if(response->poll < 6) {
-    response->poll = 6;
-  }
   if(response->poll > 12) {
     response->poll = 12;
   }
