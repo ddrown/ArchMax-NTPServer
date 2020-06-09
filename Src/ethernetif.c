@@ -207,7 +207,6 @@ void ethernetif_scan_tx_timestamps() {
  */
 static void low_level_init(struct netif *netif)
 { 
-  uint32_t regvalue = 0;
   HAL_StatusTypeDef hal_eth_init_status;
   
 /* Init ETH */
@@ -277,23 +276,6 @@ static void low_level_init(struct netif *netif)
     
 /* USER CODE END PHY_PRE_CONFIG */
   
-  /**** Configure PHY to generate an interrupt when Eth Link state changes ****/
-  /* Read Register Configuration */
-  HAL_ETH_ReadPHYRegister(&heth, PHY_MICR, &regvalue);
-  
-  regvalue |= (PHY_MICR_INT_EN | PHY_MICR_INT_OE);
-
-  /* Enable Interrupts */
-  HAL_ETH_WritePHYRegister(&heth, PHY_MICR, regvalue );
-  
-  /* Read Register Configuration */
-  HAL_ETH_ReadPHYRegister(&heth, PHY_MISR, &regvalue);
-  
-  regvalue |= PHY_MISR_LINK_INT_EN;
-    
-  /* Enable Interrupt on change of link status */
-  HAL_ETH_WritePHYRegister(&heth, PHY_MISR, regvalue);
-
 /* USER CODE BEGIN PHY_POST_CONFIG */ 
     
 /* USER CODE END PHY_POST_CONFIG */
