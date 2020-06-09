@@ -31,7 +31,7 @@
 
 /* Within 'USER CODE' section, code will be kept by default at each generation */
 /* USER CODE BEGIN 0 */
-
+#include "ntp.h"
 /* USER CODE END 0 */
 
 /* Private define ------------------------------------------------------------*/
@@ -73,7 +73,6 @@ __ALIGN_BEGIN uint8_t Tx_Buff[ETH_TXBUFNB][ETH_TX_BUF_SIZE] __ALIGN_END; /* Ethe
 ETH_HandleTypeDef heth;
 
 /* USER CODE BEGIN 3 */
-uint8_t Eth_Timestamp_Next_Tx_Packet = 0;
 /* USER CODE END 3 */
 
 /* Private functions ---------------------------------------------------------*/
@@ -182,7 +181,12 @@ void ethernetif_scan_tx_timestamps() {
   for(uint32_t i = 0; i < ETH_TXBUFNB; i++) {
     // if the Transmit timestamp status flag is set on the last 
     if(DMATxDscrTab[i].Status & ETH_DMATXDESC_TTSS && DMATxDscrTab[i].Status & ETH_DMATXDESC_LS) {
-      TXTimestampCallback(DMATxDscrTab[i].TimeStampLow, DMATxDscrTab[i].TimeStampHigh);
+      TXTimestampCallback(
+          DMATxDscrTab[i].TimeStampLow,
+          DMATxDscrTab[i].TimeStampHigh,
+          DMATxDscrTab[i].ControlBufferSize & ETH_DMATXDESC_TBS1,
+          (uint8_t *)DMATxDscrTab[i].Buffer1Addr
+          );
       // if we own the entry, reset it back to 0
       if(!(DMATxDscrTab[i].Status & ETH_DMATXDESC_OWN)) {
         DMATxDscrTab[i].Status &= ~(ETH_DMATXDESC_TTSE|ETH_DMATXDESC_TTSS); 
@@ -322,7 +326,6 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
   for(q = p; q != NULL; q = q->next)
     {
       /* Is this buffer available? If not, goto error */
-      // TODO - how does this handle adding a packet while one is in TX?
       if((DmaTxDesc->Status & ETH_DMATXDESC_OWN) != (uint32_t)RESET)
       {
         errval = ERR_USE;
@@ -333,8 +336,7 @@ static err_t low_level_output(struct netif *netif, struct pbuf *p)
       DmaTxDesc->Status &= ~(ETH_DMATXDESC_TTSE|ETH_DMATXDESC_TTSS); 
       DmaTxDesc->TimeStampLow = 0;
       DmaTxDesc->TimeStampHigh = 0;
-      if(Eth_Timestamp_Next_Tx_Packet && payloadoffset == 0) {  // TTSE only valid on first packet
-        Eth_Timestamp_Next_Tx_Packet = 0;
+      if(payloadoffset == 0) {  // TTSE only valid on first packet
         DmaTxDesc->Status |= ETH_DMATXDESC_TTSE;
       }
 

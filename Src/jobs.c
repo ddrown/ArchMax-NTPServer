@@ -9,7 +9,7 @@
 #include "timesync.h"
 #include "ethernetif.h"
 
-enum jobids {STARTJOB, PTP_SET_TARGET, TIME_SYNC, SCAN_TX_TS, POLL_PHY, ENDJOB};
+enum jobids {STARTJOB, PTP_SET_TARGET, TIME_SYNC, SCAN_TX_TS, POLL_PHY, EXPIRE_CLIENTS, ENDJOB};
 static void poll_phy_status();
 
 static const struct jobdefs {
@@ -18,12 +18,13 @@ static const struct jobdefs {
   uint8_t args;
 } jobs[] = {
   { .jobtype= STARTJOB,       .tick=   0, .args= 0 },
-  { .jobtype= SCAN_TX_TS,     .tick=  10, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 150, .args= 0 },
+  { .jobtype= SCAN_TX_TS,     .tick= 250, .args= 0 },
   { .jobtype= POLL_PHY,       .tick= 350, .args= 0 },
   { .jobtype= PTP_SET_TARGET, .tick= 450, .args= 0 },
-  { .jobtype= SCAN_TX_TS,     .tick= 650, .args= 0 },
+  { .jobtype= EXPIRE_CLIENTS, .tick= 550, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 650, .args= 0 },
+  { .jobtype= SCAN_TX_TS,     .tick= 750, .args= 0 },
   { .jobtype= PTP_SET_TARGET, .tick= 950, .args= 0 },
   { .jobtype= ENDJOB,         .tick= 999, .args= 0 },
 };
@@ -42,6 +43,9 @@ static void runjob(uint8_t job) {
       break;
     case POLL_PHY:
       poll_phy_status();
+      break;
+    case EXPIRE_CLIENTS:
+      expire_clients();
       break;
     case STARTJOB:
     case ENDJOB:

@@ -6,6 +6,8 @@ extern "C" {
 };
 
 #include "NTPServer.h"
+#include "NTPClients.h"
+#include "ntp.h"
 
 NTPServer server;
 
@@ -30,6 +32,7 @@ void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const 
     uint32_t parts[2];
     uint64_t whole;
   } start_tx;
+  struct client *interleavedClient;
 
   // drop too small packets
   if(request_buf->len < sizeof(struct ntp_packet)) {
@@ -70,20 +73,43 @@ void NTPServer::recv(struct pbuf *request_buf, struct pbuf *response_buf, const 
   response->dispersion_fb = htons(dispersion.s16[TS_POS_SUBS]);
   response->ref_time = htonl(reftime);
   response->ref_time_fb = 0;
-  response->org_time = request->trans_time;
-  response->org_time_fb = request->trans_time_fb;
 
   request_buf->ts.parts[TS_POS_SUBS] *= 2; // PTP clock runs at 2^31
   request_buf->ts.whole += RX_TRAILER - RX_PHY - RX_OFFSET_ADJUST;
   response->recv_time = htonl(request_buf->ts.parts[TS_POS_S]);
   response->recv_time_fb = htonl(request_buf->ts.parts[TS_POS_SUBS]);
 
-  start_tx.whole = ptp_now();
-  start_tx.whole += TX_DELAY + TX_PHY;
-  response->trans_time = htonl(start_tx.parts[TS_POS_S]);
-  response->trans_time_fb = htonl(start_tx.parts[TS_POS_SUBS]);
+  if(request->org_time != 0) {
+    interleavedClient = clientList.findClient(ntohl(addr->u_addr.ip4.addr), ntohl(request->org_time), ntohl(request->org_time_fb));
+  } else {
+    interleavedClient = NULL;
+  }
+  if(interleavedClient && interleavedClient->tx_s != 0) {
+    // interleaved mode
+    response->org_time = request->recv_time;
+    response->org_time_fb = request->recv_time_fb;
+
+    start_tx.parts[TS_POS_S] = interleavedClient->tx_s;
+    start_tx.parts[TS_POS_SUBS] = interleavedClient->tx_subs;
+    start_tx.whole += TX_PHY;
+
+    response->trans_time = htonl(start_tx.parts[TS_POS_S]);
+    response->trans_time_fb = htonl(start_tx.parts[TS_POS_SUBS]);
+  } else {
+    // basic mode
+    response->org_time = request->trans_time;
+    response->org_time_fb = request->trans_time_fb;
+
+    start_tx.whole = ptp_now();
+    start_tx.whole += TX_DELAY + TX_PHY;
+
+    response->trans_time = htonl(start_tx.parts[TS_POS_S]);
+    response->trans_time_fb = htonl(start_tx.parts[TS_POS_SUBS]);
+  }
 
   udp_sendto(ntp_pcb, response_buf, addr, port);
+
+  clientList.addRx(ntohl(addr->u_addr.ip4.addr), port, request_buf->ts.parts[TS_POS_S], request_buf->ts.parts[TS_POS_SUBS]);
 }
 
 extern "C" {
@@ -118,5 +144,5 @@ void NTPServer::setDispersion(uint32_t newDispersion) {
 void NTPServer::setup() {
   ntp_pcb = udp_new_ip_type(IPADDR_TYPE_ANY);
   udp_recv(ntp_pcb, ntp_recv, NULL);
-  udp_bind(ntp_pcb, IP_ANY_TYPE, 123);
+  udp_bind(ntp_pcb, IP_ANY_TYPE, NTP_PORT);
 }

@@ -14,6 +14,7 @@
 #define NTP_MODE_BROADC 5
 #define NTP_MODE_CTRL   6
 #define NTP_MODE_PRIV   7
+#define NTP_PORT        123
 
 extern "C" {
   struct ntp_packet {

@@ -19,6 +19,7 @@ void ptp_set_freq_div(int32_t div);
 void ptp_update_s(int32_t sec);
 void ptp_update_subs(int32_t subs);
 uint64_t ptp_now();
+uint32_t ptp_seconds();
 void ptp_set_target();
 
 #endif // PTP_H

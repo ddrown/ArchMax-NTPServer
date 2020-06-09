@@ -124,7 +124,8 @@ Src/GPSDateTime.cpp \
 Src/timesync.cpp \
 Src/ClockPID.cpp \
 Src/ntp.cpp \
-Src/NTPServer.cpp
+Src/NTPServer.cpp \
+Src/NTPClients.cpp
 
 # ASM sources
 ASM_SOURCES =  \

@@ -197,7 +197,7 @@ void ptp_timestamp(struct timestamp *now) {
   s2 = heth.Instance->PTPTSHR;
 
   // if the timestamp read happened within 10ms of a counter rollover, use the next second
-  if(now->seconds != s2 && now->subseconds < 21474836) {
+  if(now->subseconds < 21474836) {
     now->seconds = s2;
   } else {
     now->seconds = s1;
@@ -210,6 +210,10 @@ uint64_t ptp_now() {
   ptp_timestamp(&now);
 
   return (uint64_t)now.seconds << 32 | now.subseconds << 1;
+}
+
+uint32_t ptp_seconds() {
+  return heth.Instance->PTPTSHR;
 }
 
 #define SUBSECONDS_PER_SECOND 2147483648
