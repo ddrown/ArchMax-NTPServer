@@ -9,7 +9,8 @@
 #include "timesync.h"
 #include "ethernetif.h"
 
-enum jobids {STARTJOB, PTP_SET_TARGET, TIME_SYNC, SCAN_TX_TS, ENDJOB};
+enum jobids {STARTJOB, PTP_SET_TARGET, TIME_SYNC, SCAN_TX_TS, POLL_PHY, ENDJOB};
+static void poll_phy_status();
 
 static const struct jobdefs {
   enum jobids jobtype;
@@ -19,6 +20,7 @@ static const struct jobdefs {
   { .jobtype= STARTJOB,       .tick=   0, .args= 0 },
   { .jobtype= SCAN_TX_TS,     .tick=  10, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 150, .args= 0 },
+  { .jobtype= POLL_PHY,       .tick= 350, .args= 0 },
   { .jobtype= PTP_SET_TARGET, .tick= 450, .args= 0 },
   { .jobtype= SCAN_TX_TS,     .tick= 650, .args= 0 },
   { .jobtype= TIME_SYNC,      .tick= 650, .args= 0 },
@@ -38,9 +40,32 @@ static void runjob(uint8_t job) {
       // check for TX timestamps if the RX previously timed out
       ethernetif_scan_tx_timestamps();
       break;
+    case POLL_PHY:
+      poll_phy_status();
+      break;
     case STARTJOB:
     case ENDJOB:
       break;
+  }
+}
+
+static void poll_phy_status() {
+  static uint8_t last_link = 0;
+  uint32_t phyreg;
+
+  if((HAL_ETH_ReadPHYRegister(&heth, PHY_SR, &phyreg)) != HAL_OK) {
+    return;
+  }
+
+  if((phyreg & PHY_LINK_STATUS) != last_link) {
+    last_link = phyreg & PHY_LINK_STATUS;
+    if(last_link) {
+      write_uart_s("link up\n");
+      netif_set_link_up(&gnetif);
+    } else {
+      write_uart_s("link down\n");
+      netif_set_link_down(&gnetif);
+    }
   }
 }
 
