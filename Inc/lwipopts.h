@@ -50,7 +50,7 @@
 /*----- Value in opt.h for LWIP_DHCP: 0 -----*/
 #define LWIP_DHCP 1
 /*----- Default Value for LWIP_DNS: 0 ---*/
-#define LWIP_DNS 1
+#define LWIP_DNS 0
 /*----- Default Value for MEMP_NUM_UDP_PCB: 4 ---*/
 #define MEMP_NUM_UDP_PCB 10
 /*----- Value in opt.h for LWIP_TCP: 1 -----*/
@@ -84,7 +84,7 @@
 /*----- Default Value for LWIP_IPV6: 0 ---*/
 #define LWIP_IPV6 1
 /*----- Default Value for LWIP_SNTP: 0 ---*/
-#define LWIP_SNTP 1
+#define LWIP_SNTP 0
 /*----- Value in opt.h for LWIP_STATS: 1 -----*/
 #define LWIP_STATS 0
 /*----- Value in opt.h for CHECKSUM_GEN_IP: 1 -----*/
